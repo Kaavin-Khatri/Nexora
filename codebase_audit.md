@@ -60,7 +60,14 @@ nexora/
 ├── node_modules/           # (ignored)
 └── apps/
     ├── web/                # Next.js 16 App Router
+    │   ├── middleware.ts   # session refresh + redirect matrix (Node runtime)
     │   ├── app/            # layout.tsx, page.tsx, globals.css
+    │   │   ├── (auth)/     # signup, login
+    │   │   ├── logout/     # POST route handler
+    │   │   ├── candidate/dashboard/   # placeholder (real one in later phase)
+    │   │   ├── recruiter/dashboard/   # placeholder
+    │   │   └── debug/      # TEMP, delete in Phase 4
+    │   ├── lib/            # api-client, supabase/, bootstrap-profile, nav.ts
     │   ├── public/
     │   ├── package.json    # name: web; scripts: dev/build/start/lint/format
     │   ├── next.config.ts
@@ -129,7 +136,10 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - apps/web/lib/api-client.ts — the ONLY web→api path: `api<T>(path, init?)`, base URL from NEXT_PUBLIC_API_URL (default localhost:8000), throws ApiError(status, message) on non-2xx (parses FastAPI `detail`)
 - apps/web/lib/supabase/client.ts (browser) + server.ts (server components/route handlers, @supabase/ssr getAll/setAll cookie pattern)
 - apps/web/lib/bootstrap-profile.ts — POST /profiles/bootstrap after signup/login (non-fatal; API also bootstraps on first authenticated request)
-- apps/web/app/(auth)/signup + login pages (client components, minimal Tailwind); app/logout/route.ts (POST → signOut → 303 /login)
+- apps/web/app/(auth)/signup + login pages (client components, minimal Tailwind; login honors ?next=); app/logout/route.ts (POST → signOut → 303 /login)
+- apps/web/middleware.ts — redirect matrix + session refresh (see Decisions)
+- apps/web/lib/nav.ts — NAV: Record<Role, NavItem[]> consumed by the Phase 4 shell
+- apps/web/app/candidate/dashboard + app/recruiter/dashboard — placeholder server components (name + role from session)
 - apps/web/app/debug/page.tsx — TEMP handshake page rendering /health; delete in Phase 4
 - apps/web default create-next-app page (app/layout.tsx, app/page.tsx)
 
@@ -142,6 +152,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - Supabase Auth replaces the earlier Auth.js plan: DB + storage + auth in one free service, zero password custody in Nexora code, JWT independently verifiable in FastAPI (3.2)
 - Dual-path JWT verification (HS256 secret OR JWKS) so the code works on both Supabase project generations; this project is JWKS/ES256
 - 30s JWT leeway: local clock skew vs Supabase made fresh tokens fail iat validation (caught by QA, not theory)
+- Middleware: getUser() not getClaims() (getClaims silently finds no session in the middleware environment); runtime "nodejs"; matcher `/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)`; redirects carry refreshed session cookies
 - Seeds exclude embeddings until the pipeline exists — no fake vectors ever; seed is insert-only on natural keys so re-runs never duplicate or overwrite (Phase 7.3 backfill survives re-seeding)
 - Formatting: Prettier defaults, no .prettierrc (zero bikeshedding; Prettier 3 respects .gitignore); eslint-config-prettier disables conflicting ESLint rules
 - Python lint/format: ruff, line-length 100, target py311 (syntax floor; venv runs 3.14)
@@ -157,6 +168,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
 
 ## Known Issues
+- **SECURITY (pending user action)**: the Step 0.2 key rotation never took effect — the pre-rotation anon key still authenticates, so the service_role key exposed in chat on 2026-07-11 must be assumed live. Fix: put the sb_publishable key in apps/web/.env.local, then dashboard → API Keys → disable legacy keys (or rotate JWT secret).
 - **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1
 - Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)
 - db.<ref>.supabase.co (true direct connection) is IPv6-only and unreachable from this network — DIRECT_DATABASE_URL uses the session pooler (:5432) instead

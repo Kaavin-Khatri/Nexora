@@ -34,7 +34,7 @@ export default function SignupPage() {
     if (data.session) {
       await bootstrapProfile(data.session.access_token);
     }
-    router.push("/");
+    router.push(`/${role}/dashboard`);
     router.refresh();
   }
 

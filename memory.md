@@ -280,3 +280,36 @@ appends here + updates the audit after finishing. Never store secret values here
 - TEMP /debug/recruiter-only → delete in Phase 4
 
 ---
+
+## Step 3.3 — Route Protection & Role Redirects (Web)
+**Timestamp:** 2026-07-12T11:45:00Z
+**Status:** COMPLETE
+
+### What was done
+- apps/web/middleware.ts (@supabase/ssr getUser pattern, Node runtime, cookie-carrying redirects)
+- Redirect matrix VERBATIM:
+  - logged-out + /candidate/* or /recruiter/* → /login?next=<path>
+  - logged-in + /login or /signup → /<role>/dashboard
+  - candidate + /recruiter/* → /candidate/dashboard
+  - recruiter + /candidate/* → /recruiter/dashboard
+  - everything else → pass through with refreshed session cookies
+- Login honors ?next= (falls back to /<role>/dashboard); signup lands on /<role>/dashboard
+- Placeholder dashboards: app/candidate/dashboard + app/recruiter/dashboard (server components, name+role from session)
+- lib/nav.ts: NAV: Record<Role, NavItem[]> — candidate: Dashboard/Jobs/Resume/Applications/Profile; recruiter: Dashboard/Jobs/Company
+- Second test user created: qa.recruiter.33@example.com (recruiter)
+- QA green (headless, real session cookies for both roles): every matrix cell verified incl. mirror case, session survives refresh (two 200s), /file.svg untouched, dashboard body renders email+role
+- Commit: feat(auth): middleware protection + role redirects
+
+### Decisions
+- middleware uses getUser() NOT getClaims(): getClaims silently returns no session in this middleware environment (both edge and node runtimes tested) — getUser verifies with the auth server and works
+- middleware runtime: nodejs (config.runtime) — matches the environment where the ssr cookie parsing is proven
+- Matcher: "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"
+- Redirects copy refreshed session cookies onto the redirect response — otherwise a token refresh done during the request is lost
+- ROOT CAUSE of initial QA failure: apps/web/.env.local still had the placeholder SUPABASE_URL → ssr derived the wrong cookie name ("sb-your-project-ref-…") → "Auth session missing". Fixed the URL. LESSON: when auth "finds no session", check the URL-derived cookie name first.
+
+### Key values for future steps
+- SECURITY GAP FOUND: the pre-rotation anon key still authenticates → the Step 0.2 JWT-secret rotation never actually happened → the service_role key exposed in chat on 2026-07-11 must be assumed LIVE. Action for user (logged, pending): switch .env.local to the sb_publishable key, then disable legacy API keys (or rotate JWT secret) in dashboard → API Keys.
+- Test users: qa.candidate.31@example.com + qa.recruiter.33@example.com (password in QA scripts only, dev-only accounts)
+- Phase 4 shell consumes NAV from lib/nav.ts
+
+---

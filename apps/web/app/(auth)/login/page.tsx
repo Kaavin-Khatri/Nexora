@@ -30,7 +30,10 @@ export default function LoginPage() {
     if (data.session) {
       await bootstrapProfile(data.session.access_token);
     }
-    router.push("/");
+    // Honor ?next= from the middleware, else land on the role dashboard.
+    const next = new URLSearchParams(window.location.search).get("next");
+    const role = data.user?.user_metadata?.role ?? "candidate";
+    router.push(next ?? `/${role}/dashboard`);
     router.refresh();
   }
 
