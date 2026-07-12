@@ -1,0 +1,98 @@
+# Nexora — codebase_audit.md
+
+Living snapshot of the system AS IT IS NOW. Sections are rewritten in place —
+history lives in memory.md. Never store secret values here.
+
+## Environment
+- OS: Windows 11 Home, shell: PowerShell (all commands use PowerShell syntax)
+- Node v24.16.0, pnpm 11.8.0, Python 3.14.6, Git 2.55.0
+- AI agent: Claude Code (VS Code extension)
+- Docker: not installed (Supabase is the primary database)
+
+## Stack & Versions
+- apps/web: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4.3.2, ESLint 9.39.5, import alias `@/*`
+- apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pydantic 2.13.4, pydantic-settings 2.14.2, python-dotenv
+- Monorepo: pnpm workspace (pnpm-workspace.yaml), single lockfile at root
+
+## Services
+- Supabase (Postgres + pgvector + Auth + Storage): project ref `vduadmxexdgkhmkxloyd`, region ap-south-1 (Mumbai), dashboard https://supabase.com/dashboard/project/vduadmxexdgkhmkxloyd — pgvector enabled
+- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL
+- Vercel: account ready, hosts apps/web (deploy in Phase 14.2)
+- Render: account ready, hosts apps/api (deploy in Phase 14.1)
+- UptimeRobot: account ready (keep-alive pings, Phase 14)
+
+### Connection strategy
+- Direct connection, port 5432 (`db.<ref>.supabase.co`) → Alembic migrations ONLY (DIRECT_DATABASE_URL)
+- Transaction pooler, port 6543 (`aws-0-ap-south-1.pooler.supabase.com`, user `postgres.<ref>`) → app runtime (DATABASE_URL)
+
+## Env Var Registry
+Canonical names only — values live in git-ignored .env files / host dashboards.
+
+| Var | Owner | Secret |
+|-----|-------|--------|
+| NEXT_PUBLIC_SUPABASE_URL | apps/web | no |
+| NEXT_PUBLIC_SUPABASE_ANON_KEY | apps/web | no (browser-safe, RLS-limited) |
+| NEXT_PUBLIC_API_URL | apps/web | no |
+| DATABASE_URL | apps/api | YES (pooler :6543) |
+| DIRECT_DATABASE_URL | apps/api | YES (direct :5432, migrations) |
+| SUPABASE_URL | apps/api | no |
+| SUPABASE_SERVICE_ROLE_KEY | apps/api | YES |
+| SUPABASE_JWT_SECRET | apps/api | YES |
+| GROQ_API_KEY | apps/api | YES |
+| GROQ_MODEL | apps/api | no (llama-3.3-70b-versatile) |
+| ALLOWED_ORIGINS | apps/api | no |
+| FASTEMBED_CACHE | apps/api | no |
+
+## File Tree
+```
+nexora/
+├── package.json            # scripts: dev:web, dev:api
+├── pnpm-workspace.yaml     # packages: apps/web; allowBuilds
+├── pnpm-lock.yaml
+├── .gitignore
+├── memory.md
+├── codebase_audit.md
+├── node_modules/           # (ignored)
+└── apps/
+    ├── web/                # Next.js 16 App Router
+    │   ├── app/            # layout.tsx, page.tsx, globals.css
+    │   ├── public/
+    │   ├── package.json    # name: web
+    │   ├── next.config.ts
+    │   ├── tsconfig.json
+    │   ├── postcss.config.mjs
+    │   ├── eslint.config.mjs
+    │   └── .env.example
+    └── api/
+        ├── app/
+        │   └── main.py     # FastAPI app, GET /health
+        ├── requirements.txt
+        ├── .env.example
+        └── .venv/          # (ignored) Python 3.14.6
+```
+
+## Database Schema
+- None yet (first migrations in Phase 2). pgvector extension enabled on Supabase.
+
+## API Endpoints
+- GET /health → {"status": "ok"}
+
+## Components
+- apps/web: default create-next-app page only (app/layout.tsx, app/page.tsx)
+
+## Decisions
+- Region ap-south-1 for lowest latency from India
+- Groq llama-3.3-70b-versatile, swappable in one line via GROQ_MODEL
+- Port 5432 = migrations only; port 6543 pooler = runtime
+- pnpm workspace source of truth is pnpm-workspace.yaml (pnpm 11 ignores package.json `workspaces`)
+- dev:api runs the venv python directly (`--app-dir apps/api`) — no activation required
+
+## Security
+- Key custody: anon/publishable keys = browser-safe (RLS-limited); service_role/secret keys + DB password = server-only, never in frontend, chat, or git
+- Secrets rule #1: .env / .env.local git-ignored forever
+- Secrets rule #2: every new env var added to .env.example with a placeholder in the same commit that introduces it
+- 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
+
+## Known Issues
+- Python 3.14.6 is ahead of the plan's 3.11 target — all current deps installed fine; if a future dep lacks 3.14 wheels, install Python 3.11 alongside
+- create-next-app drops a nested pnpm-workspace.yaml/lockfile when run inside the monorepo — was removed in Step 1.1; watch for it if re-scaffolding

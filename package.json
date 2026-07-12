@@ -1,0 +1,11 @@
+{
+  "name": "nexora",
+  "private": true,
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "apps/api/.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000 --app-dir apps/api"
+  }
+}
