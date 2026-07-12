@@ -207,3 +207,24 @@ appends here + updates the audit after finishing. Never store secret values here
 - interview_questions.application_id cascades on delete
 
 ---
+
+## Step 2.3 — Seed Data (skills, companies, jobs)
+**Timestamp:** 2026-07-12T09:05:00Z
+**Status:** COMPLETE
+
+### What was done
+- apps/api/scripts/seed.py: 120 skills across 6 categories (languages 15, frameworks 25, data-ai 25, cloud-devops 25, fintech-domain 15, soft 15); 2 demo recruiter profiles + 2 companies (PayOrbit fintech/Ahmedabad, Brightpath Consulting/Bengaluru); 6 jobs (Backend, Frontend, AI Engineer, Data Analyst, PM, DevOps) with honest 150-250 word descriptions, mixed locations (Ahmedabad/Bengaluru/Remote), mixed job_type (full_time/internship/contract), min_experience 0-5
+- QA green: two consecutive runs → identical counts (120/2/2/2/6); all 6 jobs embedding NULL + status open
+- Commit: feat(db): seed script
+
+### Decisions
+- Idempotency = INSERT-ONLY on natural keys (skill name via ON CONFLICT DO NOTHING; profiles/companies/recruiter_profiles via fixed uuid5 IDs; jobs via title+company existence check). Existing rows never updated → re-seeding after Phase 7.3 cannot wipe backfilled embeddings
+- Seed had to create 2 demo recruiter PROFILES (fixed uuid5, no matching auth.users rows — legal because no cross-schema FK); real users replace this pattern in Phase 3
+- No fake vectors ever: embedding left NULL until the Phase 7.3 pipeline backfills
+
+### Key values for future steps
+- OPEN ITEM → Phase 7.3: backfill embeddings for the 6 seeded jobs
+- Seed UUID namespace: uuid5(NAMESPACE_DNS, "seed.nexora"), keys like company/payorbit, recruiter/brightpath
+- Re-run anytime: cd apps/api && .venv/Scripts/python.exe scripts/seed.py
+
+---

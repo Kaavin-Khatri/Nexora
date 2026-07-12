@@ -79,6 +79,8 @@ nexora/
         │   ├── env.py      # url from DIRECT_DATABASE_URL; metadata from app.db.base
         │   └── versions/   # 91b5ea993551 ping table (temp)
         ├── alembic.ini     # sqlalchemy.url intentionally unset
+        ├── scripts/
+        │   └── seed.py     # idempotent demo seed (120 skills, 2 companies, 6 jobs)
         ├── requirements.txt
         ├── requirements-dev.txt  # + ruff
         ├── pyproject.toml  # [tool.ruff] line-length 100, py311
@@ -130,6 +132,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - Port 5432 = migrations only; port 6543 pooler = runtime
 - pnpm workspace source of truth is pnpm-workspace.yaml (pnpm 11 ignores package.json `workspaces`)
 - dev:api runs the venv python directly (`--app-dir apps/api`) — no activation required
+- Seeds exclude embeddings until the pipeline exists — no fake vectors ever; seed is insert-only on natural keys so re-runs never duplicate or overwrite (Phase 7.3 backfill survives re-seeding)
 - Formatting: Prettier defaults, no .prettierrc (zero bikeshedding; Prettier 3 respects .gitignore); eslint-config-prettier disables conflicting ESLint rules
 - Python lint/format: ruff, line-length 100, target py311 (syntax floor; venv runs 3.14)
 - docker-compose.yml is a fallback ONLY (Supabase paused scenario); port 5433 avoids local 5432 clashes
