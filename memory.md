@@ -152,3 +152,31 @@ appends here + updates the audit after finishing. Never store secret values here
 - Active env vars: ALLOWED_ORIGINS (api), NEXT_PUBLIC_API_URL (web) — both default to localhost, so no .env needed for local dev yet
 
 ---
+
+## Step 2.1 — SQLAlchemy + Alembic Wired to Supabase
+**Timestamp:** 2026-07-12T07:55:00Z
+**Status:** COMPLETE
+
+### What was done
+- app/core/config.py: Settings with full env registry (DATABASE_URL + DIRECT_DATABASE_URL required, rest optional); env_file anchored to apps/api/.env regardless of CWD; sqlalchemy_url() rewrites postgresql:// → postgresql+psycopg:// so pasted Supabase strings work with psycopg 3
+- app/config.py removed (superseded by app/core/config.py); main.py import updated
+- app/db/base.py (DeclarativeBase) + app/db/session.py (NullPool, pool_pre_ping, prepare_threshold=None, get_db dependency)
+- alembic init; env.py reads DIRECT_DATABASE_URL from settings, target_metadata = Base.metadata; alembic.ini URL line disabled
+- Migration 91b5ea993551: ping table (proof only, dropped next migration)
+- GET /health/db: SELECT 1 through get_db
+- QA all green against live Supabase: upgrade head OK; /health/db {"status":"ok"} over pooler; downgrade -1 + upgrade head round-trip OK; git grep (raw + URL-encoded password) finds nothing tracked; .env confirmed ignored
+- apps/api/.env.example updated to the working connection formats
+
+### Decisions
+- DIRECT_DATABASE_URL points at the SESSION POOLER (port 5432, same host/user as transaction pooler), NOT db.<ref>.supabase.co — the true direct host is IPv6-only and unreachable from this network (getaddrinfo fails). Session mode = dedicated connection per session, safe for DDL/migrations.
+- DB password contained special chars (@ etc.) → stored URL-encoded in .env; rule noted in .env.example
+- prepare_threshold=None on the runtime engine: transaction pooling breaks server-side prepared statements
+- Engine pooling: NullPool + pool_pre_ping (Supavisor pools server-side; comment in session.py explains why not to "optimize")
+
+### Key values for future steps
+- Migrations: run from apps/api/ → .venv/Scripts/python.exe -m alembic upgrade head (uses DIRECT_DATABASE_URL = session pooler :5432)
+- Runtime DB: DATABASE_URL = transaction pooler :6543; ACTIVE env vars now include both DB URLs
+- Current head: 91b5ea993551 (ping table — drop it in the Phase 2.2 schema migration)
+- pooler host is aws-1-ap-south-1.pooler.supabase.com (not aws-0)
+
+---

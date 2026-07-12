@@ -22,8 +22,10 @@ history lives in memory.md. Never store secret values here.
 - UptimeRobot: account ready (keep-alive pings, Phase 14)
 
 ### Connection strategy
-- Direct connection, port 5432 (`db.<ref>.supabase.co`) → Alembic migrations ONLY (DIRECT_DATABASE_URL)
-- Transaction pooler, port 6543 (`aws-0-ap-south-1.pooler.supabase.com`, user `postgres.<ref>`) → app runtime (DATABASE_URL)
+- DATABASE_URL → Transaction pooler, port 6543 (`aws-1-ap-south-1.pooler.supabase.com`, user `postgres.<ref>`) — app runtime. Supavisor pools server-side, so the engine uses NullPool + pool_pre_ping + prepare_threshold=None (see app/db/session.py comment).
+- DIRECT_DATABASE_URL → SESSION pooler, port 5432, same host/user — Alembic migrations ONLY (dedicated connection per session, safe for DDL).
+- Why not `db.<ref>.supabase.co`: that host is IPv6-only and unreachable from this (IPv4-only) network — getaddrinfo fails. Session pooler is the documented IPv4 fallback.
+- DB password contains special characters → stored URL-encoded in .env.
 
 ## Env Var Registry
 Canonical names only — values live in git-ignored .env files / host dashboards.
@@ -33,8 +35,8 @@ Canonical names only — values live in git-ignored .env files / host dashboards
 | NEXT_PUBLIC_SUPABASE_URL | apps/web | no | planned |
 | NEXT_PUBLIC_SUPABASE_ANON_KEY | apps/web | no (browser-safe, RLS-limited) | planned |
 | NEXT_PUBLIC_API_URL | apps/web | no | ACTIVE (default `http://localhost:8000`) |
-| DATABASE_URL | apps/api | YES (pooler :6543) | planned |
-| DIRECT_DATABASE_URL | apps/api | YES (direct :5432, migrations) | planned |
+| DATABASE_URL | apps/api | YES (transaction pooler :6543) | ACTIVE |
+| DIRECT_DATABASE_URL | apps/api | YES (session pooler :5432, migrations) | ACTIVE |
 | SUPABASE_URL | apps/api | no | planned |
 | SUPABASE_SERVICE_ROLE_KEY | apps/api | YES | planned |
 | SUPABASE_JWT_SECRET | apps/api | YES | planned |
@@ -67,22 +69,36 @@ nexora/
     │   └── .env.example
     └── api/
         ├── app/
-        │   └── main.py     # FastAPI app, GET /health
+        │   ├── main.py     # FastAPI app, /health + /health/db
+        │   ├── core/
+        │   │   └── config.py   # Settings (full env registry) + sqlalchemy_url()
+        │   └── db/
+        │       ├── base.py     # DeclarativeBase; import models here for autogenerate
+        │       └── session.py  # engine (NullPool+pre_ping), SessionLocal, get_db
+        ├── alembic/
+        │   ├── env.py      # url from DIRECT_DATABASE_URL; metadata from app.db.base
+        │   └── versions/   # 91b5ea993551 ping table (temp)
+        ├── alembic.ini     # sqlalchemy.url intentionally unset
         ├── requirements.txt
         ├── requirements-dev.txt  # + ruff
         ├── pyproject.toml  # [tool.ruff] line-length 100, py311
+        ├── .env            # (ignored) real values live here
         ├── .env.example
         └── .venv/          # (ignored) Python 3.14.6
 ```
 
 ## Database Schema
-- None yet (first migrations in Phase 2). pgvector extension enabled on Supabase.
+- alembic_version (Alembic bookkeeping)
+- ping (id int PK) — migration-path proof, dropped in the Phase 2.2 schema migration
+- pgvector extension enabled on Supabase (no vector columns yet)
+- Current Alembic head: 91b5ea993551
 
 ## API Endpoints
 
 | Method | Path | Auth | Returns |
 |--------|------|------|---------|
 | GET | /health | none | {"status": "ok"} |
+| GET | /health/db | none | {"status": "ok"} — SELECT 1 via get_db over the pooler |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
@@ -108,5 +124,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
 
 ## Known Issues
+- Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)
+- db.<ref>.supabase.co (true direct connection) is IPv6-only and unreachable from this network — DIRECT_DATABASE_URL uses the session pooler (:5432) instead
 - Python 3.14.6 is ahead of the plan's 3.11 target — all current deps installed fine; if a future dep lacks 3.14 wheels, install Python 3.11 alongside
 - create-next-app drops a nested pnpm-workspace.yaml/lockfile when run inside the monorepo — was removed in Step 1.1; watch for it if re-scaffolding
