@@ -61,7 +61,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Toaster } from "@/components/ui/sonner";
 import {
   Table,
   TableBody,
@@ -428,8 +427,6 @@ export default function StyleguidePage() {
         <Section title="DataTable — loading / data / empty">
           <DataTableDemo />
         </Section>
-
-        <Toaster />
       </main>
     </TooltipProvider>
   );

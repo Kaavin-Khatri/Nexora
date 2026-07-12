@@ -105,7 +105,7 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 
 **Enums** (Postgres types): user_role(candidate, recruiter) · job_type(full_time, part_time, contract, internship) — shared by profiles + jobs · resume_status(uploaded, parsing, parsed, failed) · job_status(open, closed) · application_status(applied, screening, shortlisted, interview, rejected, hired)
 
-**profiles** — one row per Supabase auth user. user_id UUID PK (mirrors auth.users.id, NO cross-schema FK — app layer enforces via verified JWT), role user_role NOT NULL, full_name text NOT NULL, headline text, location text, years_experience numeric(4,1), desired_job_type job_type, open_to_remote bool NOT NULL default false
+**profiles** — one row per Supabase auth user. user_id UUID PK (mirrors auth.users.id, NO cross-schema FK — app layer enforces via verified JWT), role user_role NOT NULL, full_name text NOT NULL, headline text, location text, years_experience numeric(4,1), desired_job_type job_type, open_to_remote bool NOT NULL default false. NOTE: full_name/headline/location/years_experience/desired_job_type/open_to_remote are in active product use (candidate profile CRUD, 5.1) and are Phase 8's hard-filter inputs — LOCKED.
 
 **companies** — id UUID PK default gen_random_uuid(), name text NOT NULL, website text, size text, about text, owner_user_id UUID NOT NULL FK→profiles.user_id
 
@@ -131,6 +131,8 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | GET | /health/db | none | {"status": "ok"} — SELECT 1 via get_db over the pooler |
 | GET | /me | bearer (any role) | full profile row (bootstraps it if missing) |
 | POST | /profiles/bootstrap | bearer (any role) | {"status","user_id","role"} — idempotent |
+| GET | /candidates/me | bearer + candidate | profile (full_name, headline, location, years_experience, desired_job_type, open_to_remote) |
+| PATCH | /candidates/me | bearer + candidate | partial update; extra="forbid" + ranges → 422; returns updated profile |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 

@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.core.security import CurrentUser, get_current_user
 from app.db.models import Profile
 from app.db.session import get_db
+from app.routers import candidates
 
 app = FastAPI(title="Nexora API")
 
@@ -17,6 +18,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(candidates.router)
 
 
 @app.get("/health")

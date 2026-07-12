@@ -390,3 +390,27 @@ appends here + updates the audit after finishing. Never store secret values here
 - Empty-state copy pattern: "No X yet." + what-to-do sub + action button
 
 ---
+
+## Step 5.1 — Candidate Profile CRUD
+**Timestamp:** 2026-07-12T14:45:00Z
+**Status:** COMPLETE
+
+### What was done
+- API: app/schemas/candidate.py (CandidateProfileOut + CandidateProfileUpdate with extra="forbid"), app/routers/candidates.py (GET + PATCH /candidates/me, both require_role("candidate")); router included in main.py. PATCH uses model_dump(exclude_unset=True) so only sent fields update.
+- Web: lib/candidate-schema.ts (zod, mirrors API field-for-field), app/candidate/profile/page.tsx (server component: getSession → authed GET), profile-form.tsx (react-hook-form + zodResolver, Controller for Select/Switch, sonner toast, reset(saved) clears dirty). Installed react-hook-form 7.81, zod 4.4, @hookform/resolvers 5.4, shadcn switch.
+- Global <Toaster/> moved to root layout (removed the dev-only one from /styleguide to avoid double toasts)
+- QA all green (live stack): GET returns profile; PATCH persists (verified re-GET + DB row = QA Candidate/Ahmedabad/3.5/full_time/true); negative years → 422, >50 → 422, unknown field → 422 (extra_forbidden), unknown job_type → 422; recruiter token → 403; no token → 401; web page 200 with all fields + values + placeholders
+- Commit: feat(candidate): profile crud
+
+### Decisions
+- PROFILE FIELDS LOCKED (hard-filter inputs for Phase 8 matcher — changing them later means touching the matcher): full_name (req, 1-200), headline (≤200, nullable), location (≤120, nullable), years_experience (0-50, nullable), desired_job_type (full_time|part_time|contract|internship, nullable), open_to_remote (bool)
+- Server rejects what client rejects: zod on the client, pydantic extra="forbid" + ge/le + Literal on the server — never trust the browser
+- Select can't hold empty value → NONE sentinel "__none__" maps to/from null; empty text inputs setValueAs → null
+- Authed API calls: server component uses getSession().access_token; client form same via browser supabase client. api-client stays the only fetch path; Authorization passed per-call.
+
+### Key values for future steps
+- Endpoints: GET/PATCH /candidates/me (candidate-only)
+- Reusable form pattern: rhf + zodResolver + Field/FieldError + Controller for Select/Switch + reset(saved) + sonner
+- Adding a profile field = schema (both sides) + form control + (if it needs a column) a migration
+
+---
