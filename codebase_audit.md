@@ -28,20 +28,20 @@ history lives in memory.md. Never store secret values here.
 ## Env Var Registry
 Canonical names only — values live in git-ignored .env files / host dashboards.
 
-| Var | Owner | Secret |
-|-----|-------|--------|
-| NEXT_PUBLIC_SUPABASE_URL | apps/web | no |
-| NEXT_PUBLIC_SUPABASE_ANON_KEY | apps/web | no (browser-safe, RLS-limited) |
-| NEXT_PUBLIC_API_URL | apps/web | no |
-| DATABASE_URL | apps/api | YES (pooler :6543) |
-| DIRECT_DATABASE_URL | apps/api | YES (direct :5432, migrations) |
-| SUPABASE_URL | apps/api | no |
-| SUPABASE_SERVICE_ROLE_KEY | apps/api | YES |
-| SUPABASE_JWT_SECRET | apps/api | YES |
-| GROQ_API_KEY | apps/api | YES |
-| GROQ_MODEL | apps/api | no (llama-3.3-70b-versatile) |
-| ALLOWED_ORIGINS | apps/api | no |
-| FASTEMBED_CACHE | apps/api | no |
+| Var | Owner | Secret | Status |
+|-----|-------|--------|--------|
+| NEXT_PUBLIC_SUPABASE_URL | apps/web | no | planned |
+| NEXT_PUBLIC_SUPABASE_ANON_KEY | apps/web | no (browser-safe, RLS-limited) | planned |
+| NEXT_PUBLIC_API_URL | apps/web | no | ACTIVE (default `http://localhost:8000`) |
+| DATABASE_URL | apps/api | YES (pooler :6543) | planned |
+| DIRECT_DATABASE_URL | apps/api | YES (direct :5432, migrations) | planned |
+| SUPABASE_URL | apps/api | no | planned |
+| SUPABASE_SERVICE_ROLE_KEY | apps/api | YES | planned |
+| SUPABASE_JWT_SECRET | apps/api | YES | planned |
+| GROQ_API_KEY | apps/api | YES | planned |
+| GROQ_MODEL | apps/api | no (llama-3.3-70b-versatile) | planned |
+| ALLOWED_ORIGINS | apps/api | no | ACTIVE (default `http://localhost:3000`) |
+| FASTEMBED_CACHE | apps/api | no | planned |
 
 ## File Tree
 ```
@@ -79,10 +79,17 @@ nexora/
 - None yet (first migrations in Phase 2). pgvector extension enabled on Supabase.
 
 ## API Endpoints
-- GET /health → {"status": "ok"}
+
+| Method | Path | Auth | Returns |
+|--------|------|------|---------|
+| GET | /health | none | {"status": "ok"} |
+
+CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
 ## Components
-- apps/web: default create-next-app page only (app/layout.tsx, app/page.tsx)
+- apps/web/lib/api-client.ts — the ONLY web→api path: `api<T>(path, init?)`, base URL from NEXT_PUBLIC_API_URL (default localhost:8000), throws ApiError(status, message) on non-2xx (parses FastAPI `detail`)
+- apps/web/app/debug/page.tsx — TEMP handshake page rendering /health; delete in Phase 4
+- apps/web default create-next-app page (app/layout.tsx, app/page.tsx)
 
 ## Decisions
 - Region ap-south-1 for lowest latency from India

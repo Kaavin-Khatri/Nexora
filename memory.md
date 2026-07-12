@@ -129,3 +129,26 @@ appends here + updates the audit after finishing. Never store secret values here
 - Local fallback DB (only if Supabase paused): docker compose up -d → postgresql://postgres:postgres@localhost:5433/postgres
 
 ---
+
+## Step 1.3 — Typed API Client + CORS Handshake
+**Timestamp:** 2026-07-12T07:05:00Z
+**Status:** COMPLETE
+
+### What was done
+- apps/api/app/config.py: pydantic-settings Settings (env_file .env, extra ignore); ALLOWED_ORIGINS comma-separated, default http://localhost:3000
+- apps/api/app/main.py: CORSMiddleware from settings, allow_credentials=True
+- apps/web/lib/api-client.ts: typed fetch wrapper (base URL NEXT_PUBLIC_API_URL, default http://localhost:8000); ApiError carries status + server message (FastAPI `detail` parsed)
+- apps/web/app/debug/page.tsx: temp server component rendering GET /health — DELETE IN PHASE 4
+- QA verified live: /debug rendered status ok; wrong ALLOWED_ORIGINS removed the allow-origin header (browser-block equivalent, tested via curl, env override at launch only — nothing to revert on disk); ApiError from real 404 gave status=404 message="Not Found"
+- Commit: feat(core): typed api client + cors handshake
+
+### Decisions
+- api-client pattern locked: lib/api-client.ts is the ONLY way web talks to api
+- ApiError uses explicit field assignment (no TS parameter properties) — keeps the file erasable-syntax-only, so plain Node can import it (Node 24 strip-mode chokes on parameter properties)
+- ALLOWED_ORIGINS is a plain comma-separated string split in config.py (no JSON parsing games)
+
+### Key values for future steps
+- Web → API calls: `import { api, ApiError } from "@/lib/api-client"`; api<T>(path, init?) throws ApiError on non-2xx
+- Active env vars: ALLOWED_ORIGINS (api), NEXT_PUBLIC_API_URL (web) — both default to localhost, so no .env needed for local dev yet
+
+---
