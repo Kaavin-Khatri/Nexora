@@ -119,13 +119,16 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 |--------|------|------|---------|
 | GET | /health | none | {"status": "ok"} |
 | GET | /health/db | none | {"status": "ok"} — SELECT 1 via get_db over the pooler |
+| GET | /me | bearer (any role) | full profile row (bootstraps it if missing) |
+| POST | /profiles/bootstrap | bearer (any role) | {"status","user_id","role"} — idempotent |
+| GET | /debug/recruiter-only | bearer + recruiter | TEMP guard-QA route, delete in Phase 4 |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
 ## Components
 - apps/web/lib/api-client.ts — the ONLY web→api path: `api<T>(path, init?)`, base URL from NEXT_PUBLIC_API_URL (default localhost:8000), throws ApiError(status, message) on non-2xx (parses FastAPI `detail`)
 - apps/web/lib/supabase/client.ts (browser) + server.ts (server components/route handlers, @supabase/ssr getAll/setAll cookie pattern)
-- apps/web/lib/bootstrap-profile.ts — feature-flagged POST /profiles/bootstrap (BOOTSTRAP_ENABLED=false until 3.2)
+- apps/web/lib/bootstrap-profile.ts — POST /profiles/bootstrap after signup/login (non-fatal; API also bootstraps on first authenticated request)
 - apps/web/app/(auth)/signup + login pages (client components, minimal Tailwind); app/logout/route.ts (POST → signOut → 303 /login)
 - apps/web/app/debug/page.tsx — TEMP handshake page rendering /health; delete in Phase 4
 - apps/web default create-next-app page (app/layout.tsx, app/page.tsx)
@@ -137,12 +140,17 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - pnpm workspace source of truth is pnpm-workspace.yaml (pnpm 11 ignores package.json `workspaces`)
 - dev:api runs the venv python directly (`--app-dir apps/api`) — no activation required
 - Supabase Auth replaces the earlier Auth.js plan: DB + storage + auth in one free service, zero password custody in Nexora code, JWT independently verifiable in FastAPI (3.2)
+- Dual-path JWT verification (HS256 secret OR JWKS) so the code works on both Supabase project generations; this project is JWKS/ES256
+- 30s JWT leeway: local clock skew vs Supabase made fresh tokens fail iat validation (caught by QA, not theory)
 - Seeds exclude embeddings until the pipeline exists — no fake vectors ever; seed is insert-only on natural keys so re-runs never duplicate or overwrite (Phase 7.3 backfill survives re-seeding)
 - Formatting: Prettier defaults, no .prettierrc (zero bikeshedding; Prettier 3 respects .gitignore); eslint-config-prettier disables conflicting ESLint rules
 - Python lint/format: ruff, line-length 100, target py311 (syntax floor; venv runs 3.14)
 - docker-compose.yml is a fallback ONLY (Supabase paused scenario); port 5433 avoids local 5432 clashes
 
 ## Security
+- Token validation (app/core/security.py): every protected route verifies the Supabase JWT independently — signature via project JWKS (ES256, cached PyJWKClient; HS256 fallback if SUPABASE_JWT_SECRET set), aud must be 'authenticated', exp enforced, 30s clock-skew leeway. 401 on any failure; require_role() → 403 on role mismatch.
+- Auth contract: CurrentUser(id, role, email); role read from profiles row (bootstrapped from token user_metadata on first authenticated request)
+- This project's signing mode: JWKS/ES256 — SUPABASE_JWT_SECRET stays EMPTY in .env
 - Key custody: anon/publishable keys = browser-safe (RLS-limited); service_role/secret keys + DB password = server-only, never in frontend, chat, or git
 - Secrets rule #1: .env / .env.local git-ignored forever
 - Secrets rule #2: every new env var added to .env.example with a placeholder in the same commit that introduces it

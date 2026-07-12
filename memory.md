@@ -254,3 +254,29 @@ appends here + updates the audit after finishing. Never store secret values here
 - ACTIVE env vars now: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (apps/web/.env.local)
 
 ---
+
+## Step 3.2 — FastAPI JWT Verification + Role Guards
+**Timestamp:** 2026-07-12T10:55:00Z
+**Status:** COMPLETE
+
+### What was done
+- PyJWT 2.13.0 + cryptography 49.0.0 added to requirements
+- app/core/security.py: verify_token dual-path (HS256 if SUPABASE_JWT_SECRET set, else cached PyJWKClient → RS256/ES256), aud='authenticated' + exp always validated, leeway=30s; CurrentUser dataclass; get_current_user (bearer → verify → load-or-create profiles row, race-safe via IntegrityError catch); require_role factory (403)
+- Routes: GET /me (full profile), POST /profiles/bootstrap (idempotent — verified twice), TEMP GET /debug/recruiter-only for guard QA (delete in Phase 4)
+- Web: BOOTSTRAP_ENABLED flag removed from lib/bootstrap-profile.ts — bootstrap call now always fires (still non-fatal try/catch)
+- .env: SUPABASE_JWT_SECRET placeholder cleared (would have wrongly triggered HS256 path); .env.example documents "leave empty on JWKS projects"
+- QA green against live project: fresh ES256 token → /me returns profile immediately; tampered/garbage/missing token → 401; candidate token on recruiter route → 403; deleted profiles row recreated on next /me
+- Commit: feat(auth): jwt verification + role guards in fastapi
+
+### Decisions
+- SIGNING MODE: this project uses JWKS/ES256 (EC key, kid 47c1668c…) — detected from live JWKS endpoint + token header; NO shared JWT secret exists. Dual-path kept so the code survives a move to an HS256 project.
+- leeway=30s on JWT validation — QA caught a real failure: local clock a few seconds behind Supabase made fresh tokens "not yet valid (iat)"
+- Bootstrap-on-first-request in get_current_user guarantees a profiles row after ANY authenticated call — web bootstrap POST is now just a warm-up nicety
+- CurrentUser(id, role, email) is the auth contract for every future route; require_role(role) is the only guard pattern
+
+### Key values for future steps
+- Route guards: Depends(get_current_user) for auth, Depends(require_role("candidate"|"recruiter")) for role
+- Role source at bootstrap: token user_metadata.role (defaults to candidate if absent); full_name falls back to email local-part
+- TEMP /debug/recruiter-only → delete in Phase 4
+
+---
