@@ -149,6 +149,11 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
   - app-shell.tsx: Sidebar + Topbar + max-w-6xl content (min-w-0 overflow guard)
   - page-header.tsx: PageHeader(title, description?, action?) — required opener for every page
 - Per-role: app/candidate/layout.tsx + app/recruiter/layout.tsx (thin server components → AppShell)
+- apps/web/components/ui-patterns/ — product-grade building blocks (all future screens compose these):
+  - empty-state.tsx: EmptyState(icon, title, sub?, action?) — product-voice copy, never "No data found"
+  - skeletons.tsx: SkeletonCard · SkeletonTable(rows, cols) · SkeletonForm(fields)
+  - status-badge.tsx: StatusBadge(status) — SINGLE source of status colors (12 statuses across application/job/resume)
+  - data-table.tsx: DataTable(columns: Column<T>[], data, rowKey, loading?, empty) — client sorting (sortValue → aria-sort), loading renders SkeletonTable, empty renders the caller's EmptyState. All lists use this or a card grid — no bespoke tables.
 - apps/web/app/styleguide — dev-only token + primitive regression page
 - apps/web/app/page.tsx — minimal token-clean landing (real marketing page in a later phase)
 
@@ -161,6 +166,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - TOKEN SYSTEM (locked 4.1, dark-only v1, all values in :root of apps/web/app/globals.css — the ONLY place colors exist):
   bg #0B0F1A · surface #121A2E · surface-2 #1A2440 · border/input #22304E · text #E6EDF7 · text-muted #8A99B8 · accent=primary #22D3EE (on-accent #06121F) · accent-2=secondary #8B5CF6 · success #34D399 · warning #FBBF24 · danger #FB7185 · ring #22D3EE · sidebar #0E1424 · radius base 10px (sm 6 → 4xl 26) · shadows sm/md/lg subtle black
   RULE: no hardcoded colors in components, ever — tokens only. Nexora "accent"=shadcn "primary"; shadcn --accent stays the neutral hover surface.
+  RULE: status→color lives ONLY in components/ui-patterns/status-badge.tsx (applied neutral · screening warning · shortlisted accent-2 · interview accent · rejected danger · hired success · open success · closed muted · uploaded neutral · parsing warning · parsed success · failed danger)
 - TYPE SCALE: Sora headings 36 bold / 30 / 24 / 20 semibold (h1–h4 default to font-heading); Inter body 16 (lh 1.5) + 14 muted secondary; JetBrains Mono for all scores/data with tabular-nums
 - Supabase Auth replaces the earlier Auth.js plan: DB + storage + auth in one free service, zero password custody in Nexora code, JWT independently verifiable in FastAPI (3.2)
 - Dual-path JWT verification (HS256 secret OR JWKS) so the code works on both Supabase project generations; this project is JWKS/ES256

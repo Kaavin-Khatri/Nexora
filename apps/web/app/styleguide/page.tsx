@@ -2,8 +2,22 @@
 
 // Dev-only visual regression page: every token + every primitive in one place.
 // If this page looks right, the design system is intact.
+import { useState } from "react";
 import { notFound } from "next/navigation";
+import { Briefcase } from "lucide-react";
 import { toast } from "sonner";
+import { DataTable, type Column } from "@/components/ui-patterns/data-table";
+import { EmptyState } from "@/components/ui-patterns/empty-state";
+import {
+  SkeletonCard,
+  SkeletonForm,
+  SkeletonTable,
+} from "@/components/ui-patterns/skeletons";
+import {
+  ALL_STATUSES,
+  StatusBadge,
+  type Status,
+} from "@/components/ui-patterns/status-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +91,66 @@ const TOKENS = [
   { name: "text", cls: "bg-foreground" },
   { name: "text-muted", cls: "bg-text-muted" },
 ];
+
+type DemoRow = { id: string; job: string; status: Status; score: number };
+
+const DEMO_ROWS: DemoRow[] = [
+  { id: "1", job: "AI Engineer", status: "shortlisted", score: 88.4 },
+  { id: "2", job: "Backend Engineer", status: "screening", score: 76.2 },
+  { id: "3", job: "Data Analyst", status: "applied", score: 72.15 },
+];
+
+const DEMO_COLS: Column<DemoRow>[] = [
+  { key: "job", header: "Job", cell: (r) => r.job, sortValue: (r) => r.job },
+  {
+    key: "status",
+    header: "Status",
+    cell: (r) => <StatusBadge status={r.status} />,
+  },
+  {
+    key: "score",
+    header: "Score",
+    cell: (r) => (
+      <span className="font-mono tabular-nums">{r.score.toFixed(2)}</span>
+    ),
+    sortValue: (r) => r.score,
+    className: "text-right",
+  },
+];
+
+function DataTableDemo() {
+  const [mode, setMode] = useState<"loading" | "data" | "empty">("data");
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        {(["loading", "data", "empty"] as const).map((m) => (
+          <Button
+            key={m}
+            size="sm"
+            variant={mode === m ? "default" : "outline"}
+            onClick={() => setMode(m)}
+            className="capitalize"
+          >
+            {m}
+          </Button>
+        ))}
+      </div>
+      <DataTable
+        columns={DEMO_COLS}
+        data={mode === "data" ? DEMO_ROWS : []}
+        loading={mode === "loading"}
+        rowKey={(r) => r.id}
+        empty={
+          <EmptyState
+            icon={Briefcase}
+            title="No applications yet."
+            sub="Apply to a job and it will show up here with its match score."
+          />
+        }
+      />
+    </div>
+  );
+}
 
 function Section({
   title,
@@ -158,19 +232,20 @@ export default function StyleguidePage() {
           </div>
         </Section>
 
-        <Section title="Badges & status">
+        <Section title="Badges">
           <div className="flex flex-wrap gap-2">
             <Badge>Default</Badge>
             <Badge variant="secondary">Secondary</Badge>
             <Badge variant="outline">Outline</Badge>
             <Badge variant="destructive">Destructive</Badge>
-            <Badge className="bg-success text-primary-foreground">Hired</Badge>
-            <Badge className="bg-warning text-primary-foreground">
-              Screening
-            </Badge>
-            <Badge className="bg-danger text-primary-foreground">
-              Rejected
-            </Badge>
+          </div>
+        </Section>
+
+        <Section title="StatusBadge — every variant">
+          <div className="flex flex-wrap gap-2">
+            {ALL_STATUSES.map((s) => (
+              <StatusBadge key={s} status={s} />
+            ))}
           </div>
         </Section>
 
@@ -246,9 +321,7 @@ export default function StyleguidePage() {
               <TableRow>
                 <TableCell>AI Engineer</TableCell>
                 <TableCell>
-                  <Badge className="bg-success text-primary-foreground">
-                    shortlisted
-                  </Badge>
+                  <StatusBadge status="shortlisted" />
                 </TableCell>
                 <TableCell className="text-right font-mono tabular-nums">
                   88.40
@@ -333,6 +406,27 @@ export default function StyleguidePage() {
               <AvatarFallback>NX</AvatarFallback>
             </Avatar>
           </div>
+        </Section>
+
+        <Section title="Skeleton patterns">
+          <div className="grid gap-6 md:grid-cols-2">
+            <SkeletonCard />
+            <SkeletonForm fields={2} />
+          </div>
+          <SkeletonTable rows={2} cols={4} />
+        </Section>
+
+        <Section title="EmptyState">
+          <EmptyState
+            icon={Briefcase}
+            title="No jobs yet."
+            sub="Post your first job to start receiving ranked candidate matches."
+            action={<Button size="sm">Post a job</Button>}
+          />
+        </Section>
+
+        <Section title="DataTable — loading / data / empty">
+          <DataTableDemo />
         </Section>
 
         <Toaster />

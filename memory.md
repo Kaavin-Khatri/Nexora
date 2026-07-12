@@ -366,3 +366,27 @@ appends here + updates the audit after finishing. Never store secret values here
 - USER VISUAL CHECK pending: eyeball 360px width for horizontal scroll (structurally guarded: min-w-0 + no fixed widths + sheet below lg)
 
 ---
+
+## Step 4.3 — Empty, Skeleton & Status Primitives
+**Timestamp:** 2026-07-12T14:05:00Z
+**Status:** COMPLETE
+
+### What was done
+- components/ui-patterns/: empty-state.tsx (icon/title/sub/action, product-voice copy), skeletons.tsx (SkeletonCard, SkeletonTable(rows,cols), SkeletonForm(fields)), status-badge.tsx (StatusBadge + ALL_STATUSES — THE single status-color source), data-table.tsx (generic Column<T> defs, client sorting via sortValue + aria-sort, built-in loading→SkeletonTable and empty→caller's EmptyState)
+- Styleguide: StatusBadge section rendering every variant; Skeleton patterns; EmptyState demo; DataTableDemo with loading/data/empty state-flip buttons; 4.1's hand-colored badges replaced with StatusBadge (QA grep caught one leftover in the raw Table demo)
+- QA green: /styleguide 200 with all 12 status variants + new sections; tsc/eslint/prettier clean; grep confirms bg-success/warning/danger appear ONLY in status-badge.tsx across components/lib (styleguide's 3 hits are the token swatch grid, by design)
+- Commit: feat(ui): empty/skeleton/status primitives + datatable
+
+### Decisions
+- STATUS → COLOR MAP (verbatim, soft badges: tint/15 bg + colored text + /30 border):
+  applied → neutral (surface-2) · screening → warning · shortlisted → accent-2 (violet) · interview → accent (cyan) · rejected → danger · hired → success · open → success · closed → neutral muted · uploaded → neutral · parsing → warning · parsed → success · failed → danger
+- RULE: all future lists use DataTable or a card grid — no bespoke tables
+- RULE: adding a status = one entry in STATUS_STYLES, nowhere else
+- Soft (tinted) badges over solid fills: better dark-mode contrast, calmer data-dense tables
+
+### Key values for future steps
+- Imports: @/components/ui-patterns/{empty-state,skeletons,status-badge,data-table}
+- DataTable contract: columns: Column<T>[] (sortValue = sortable), rowKey, loading, empty (pass an EmptyState)
+- Empty-state copy pattern: "No X yet." + what-to-do sub + action button
+
+---
