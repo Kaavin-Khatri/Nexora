@@ -313,3 +313,32 @@ appends here + updates the audit after finishing. Never store secret values here
 - Phase 4 shell consumes NAV from lib/nav.ts
 
 ---
+
+## Step 4.1 — Tokens, shadcn/ui & Typography
+**Timestamp:** 2026-07-12T12:40:00Z
+**Status:** COMPLETE
+
+### What was done
+- Visual identity LOCKED (validated against ui-ux-pro-max design DB; its gold/Orbitron suggestion rejected as off-brand for professional recruiting):
+  bg #0B0F1A · surface #121A2E · surface-2 #1A2440 · border #22304E · text #E6EDF7 · text-muted #8A99B8 · accent #22D3EE (cyan) · accent-2 #8B5CF6 (violet) · success #34D399 · warning #FBBF24 · danger #FB7185 · sidebar #0E1424
+- Fonts via next/font (self-hosted, zero layout shift): Sora (display/headings), Inter (body), JetBrains Mono (scores/data, tabular-nums)
+- shadcn init (CLI v4, radix base, nova preset) + 17 primitives: avatar badge button card dialog dropdown-menu field(+separator, replaces removed "form") input label select sheet skeleton sonner table tabs tooltip
+- globals.css: all tokens in :root (dark = default and only theme, color-scheme: dark), Nexora aliases registered in @theme (bg-surface, bg-surface-2, text-text-muted, *-accent-2, *-success, *-warning, *-danger); radius scale sm→4xl from --radius 10px; 3-step shadow scale; h1-h4 default to font-heading
+- /styleguide (dev-only, notFound() in prod): all token swatches + every primitive — the visual regression page
+- Deleted: web /debug page, api /debug/recruiter-only route, CNA boilerplate home (replaced with token-clean minimal landing — QA caught hardcoded hex in it)
+- QA green: /styleguide 200 with all sections; zero hardcoded hex in components/app/lib; fonts self-hosted (no external font links, no Geist leftovers); /debug 404
+- Commit: feat(ui): design tokens + shadcn primitives + styleguide
+
+### Decisions
+- RULE ADOPTED: no hardcoded colors, ever — tokens only (grep-enforced each phase)
+- Nexora "accent" = shadcn "primary" (cyan). shadcn's internal --accent stays a neutral hover surface — overriding it would paint every dropdown hover cyan
+- Status colors use 400-series (desaturated-light) for dark-mode legibility per dark-mode contrast rule
+- shadcn v4 registry replaced "form" with "field" — Field/FieldLabel/FieldDescription is our form pattern
+- Type scale: Sora 36/30/24/20 (bold/semibold headings), Inter 16 body + 14 secondary, JetBrains Mono for all numeric data with tabular-nums
+
+### Key values for future steps
+- Token utilities: bg-background/surface/surface-2, border-border, text-foreground/muted-foreground, bg-primary (accent), *-accent-2, *-success/warning/danger, font-heading/sans/mono
+- /styleguide is the visual regression check — verify it after any design-system change
+- GSAP/anime.js animation stacks: intentionally NOT installed in 4.1 — first animation surface is the 4.2 shell
+
+---

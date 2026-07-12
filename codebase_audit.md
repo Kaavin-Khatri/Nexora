@@ -11,6 +11,7 @@ history lives in memory.md. Never store secret values here.
 
 ## Stack & Versions
 - apps/web: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4.3.2, ESLint 9.39.5 + Prettier 3.9.5 (eslint-config-prettier 10.1.8), import alias `@/*`
+- Design system: shadcn/ui (CLI v4, radix base) — avatar, badge, button, card, dialog, dropdown-menu, field (+separator; replaces removed "form"), input, label, select, sheet, skeleton, sonner, table, tabs, tooltip. Fonts via next/font: Sora (headings), Inter (body), JetBrains Mono (data). Icons: lucide-react.
 - apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pydantic 2.13.4, pydantic-settings 2.14.2, python-dotenv, ruff 0.15.21 (dev)
 - Monorepo: pnpm workspace (pnpm-workspace.yaml), single lockfile at root
 
@@ -61,13 +62,14 @@ nexora/
 └── apps/
     ├── web/                # Next.js 16 App Router
     │   ├── middleware.ts   # session refresh + redirect matrix (Node runtime)
-    │   ├── app/            # layout.tsx, page.tsx, globals.css
+    │   ├── app/            # layout.tsx (fonts), page.tsx (minimal landing), globals.css (ALL tokens)
     │   │   ├── (auth)/     # signup, login
     │   │   ├── logout/     # POST route handler
     │   │   ├── candidate/dashboard/   # placeholder (real one in later phase)
     │   │   ├── recruiter/dashboard/   # placeholder
-    │   │   └── debug/      # TEMP, delete in Phase 4
-    │   ├── lib/            # api-client, supabase/, bootstrap-profile, nav.ts
+    │   │   └── styleguide/ # dev-only visual regression page (404 in prod)
+    │   ├── components/ui/  # 17 shadcn primitives
+    │   ├── lib/            # api-client, supabase/, bootstrap-profile, nav.ts, utils.ts (cn)
     │   ├── public/
     │   ├── package.json    # name: web; scripts: dev/build/start/lint/format
     │   ├── next.config.ts
@@ -128,7 +130,6 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | GET | /health/db | none | {"status": "ok"} — SELECT 1 via get_db over the pooler |
 | GET | /me | bearer (any role) | full profile row (bootstraps it if missing) |
 | POST | /profiles/bootstrap | bearer (any role) | {"status","user_id","role"} — idempotent |
-| GET | /debug/recruiter-only | bearer + recruiter | TEMP guard-QA route, delete in Phase 4 |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
@@ -140,8 +141,9 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - apps/web/middleware.ts — redirect matrix + session refresh (see Decisions)
 - apps/web/lib/nav.ts — NAV: Record<Role, NavItem[]> consumed by the Phase 4 shell
 - apps/web/app/candidate/dashboard + app/recruiter/dashboard — placeholder server components (name + role from session)
-- apps/web/app/debug/page.tsx — TEMP handshake page rendering /health; delete in Phase 4
-- apps/web default create-next-app page (app/layout.tsx, app/page.tsx)
+- apps/web/components/ui/* — 17 shadcn primitives (see Stack); Field family is the form pattern
+- apps/web/app/styleguide — dev-only token + primitive regression page
+- apps/web/app/page.tsx — minimal token-clean landing (real marketing page in a later phase)
 
 ## Decisions
 - Region ap-south-1 for lowest latency from India
@@ -149,6 +151,10 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - Port 5432 = migrations only; port 6543 pooler = runtime
 - pnpm workspace source of truth is pnpm-workspace.yaml (pnpm 11 ignores package.json `workspaces`)
 - dev:api runs the venv python directly (`--app-dir apps/api`) — no activation required
+- TOKEN SYSTEM (locked 4.1, dark-only v1, all values in :root of apps/web/app/globals.css — the ONLY place colors exist):
+  bg #0B0F1A · surface #121A2E · surface-2 #1A2440 · border/input #22304E · text #E6EDF7 · text-muted #8A99B8 · accent=primary #22D3EE (on-accent #06121F) · accent-2=secondary #8B5CF6 · success #34D399 · warning #FBBF24 · danger #FB7185 · ring #22D3EE · sidebar #0E1424 · radius base 10px (sm 6 → 4xl 26) · shadows sm/md/lg subtle black
+  RULE: no hardcoded colors in components, ever — tokens only. Nexora "accent"=shadcn "primary"; shadcn --accent stays the neutral hover surface.
+- TYPE SCALE: Sora headings 36 bold / 30 / 24 / 20 semibold (h1–h4 default to font-heading); Inter body 16 (lh 1.5) + 14 muted secondary; JetBrains Mono for all scores/data with tabular-nums
 - Supabase Auth replaces the earlier Auth.js plan: DB + storage + auth in one free service, zero password custody in Nexora code, JWT independently verifiable in FastAPI (3.2)
 - Dual-path JWT verification (HS256 secret OR JWKS) so the code works on both Supabase project generations; this project is JWKS/ES256
 - 30s JWT leeway: local clock skew vs Supabase made fresh tokens fail iat validation (caught by QA, not theory)

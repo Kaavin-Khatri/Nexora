@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import CurrentUser, get_current_user, require_role
+from app.core.security import CurrentUser, get_current_user
 from app.db.models import Profile
 from app.db.session import get_db
 
@@ -50,9 +50,3 @@ def me(user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_
 def bootstrap_profile(user: CurrentUser = Depends(get_current_user)):
     # get_current_user already created the row if it was missing — idempotent.
     return {"status": "ok", "user_id": str(user.id), "role": user.role}
-
-
-# TEMP — exists for role-guard QA; delete in Phase 4 with the web /debug page.
-@app.get("/debug/recruiter-only")
-def recruiter_only(user: CurrentUser = Depends(require_role("recruiter"))):
-    return {"status": "ok", "role": user.role}
