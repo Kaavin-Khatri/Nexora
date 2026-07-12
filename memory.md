@@ -308,7 +308,7 @@ appends here + updates the audit after finishing. Never store secret values here
 - ROOT CAUSE of initial QA failure: apps/web/.env.local still had the placeholder SUPABASE_URL → ssr derived the wrong cookie name ("sb-your-project-ref-…") → "Auth session missing". Fixed the URL. LESSON: when auth "finds no session", check the URL-derived cookie name first.
 
 ### Key values for future steps
-- SECURITY GAP FOUND: the pre-rotation anon key still authenticates → the Step 0.2 JWT-secret rotation never actually happened → the service_role key exposed in chat on 2026-07-11 must be assumed LIVE. Action for user (logged, pending): switch .env.local to the sb_publishable key, then disable legacy API keys (or rotate JWT secret) in dashboard → API Keys.
+- SECURITY GAP FOUND AND CLOSED (2026-07-12): pre-rotation anon key still authenticated → Step 0.2 rotation had never taken effect → both keys leaked in chat on 2026-07-11 were live. User disabled legacy API keys + switched .env.local to the sb_publishable key. VERIFIED: old anon → 401, old service_role → 401, publishable key login → session OK. Web now runs on publishable keys only; legacy eyJ keys are dead project-wide.
 - Test users: qa.candidate.31@example.com + qa.recruiter.33@example.com (password in QA scripts only, dev-only accounts)
 - Phase 4 shell consumes NAV from lib/nav.ts
 

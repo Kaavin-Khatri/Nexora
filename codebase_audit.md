@@ -168,7 +168,6 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
 
 ## Known Issues
-- **SECURITY (pending user action)**: the Step 0.2 key rotation never took effect — the pre-rotation anon key still authenticates, so the service_role key exposed in chat on 2026-07-11 must be assumed live. Fix: put the sb_publishable key in apps/web/.env.local, then dashboard → API Keys → disable legacy keys (or rotate JWT secret).
 - **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1
 - Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)
 - db.<ref>.supabase.co (true direct connection) is IPv6-only and unreachable from this network — DIRECT_DATABASE_URL uses the session pooler (:5432) instead
