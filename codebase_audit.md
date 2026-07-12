@@ -88,10 +88,27 @@ nexora/
 ```
 
 ## Database Schema
-- alembic_version (Alembic bookkeeping)
-- ping (id int PK) — migration-path proof, dropped in the Phase 2.2 schema migration
-- pgvector extension enabled on Supabase (no vector columns yet)
-- Current Alembic head: 91b5ea993551
+Single source of truth for schema questions. Alembic head: 6a7169635a41. Models in apps/api/app/db/models/.
+
+**Enums** (Postgres types): user_role(candidate, recruiter) · job_type(full_time, part_time, contract, internship) — shared by profiles + jobs · resume_status(uploaded, parsing, parsed, failed) · job_status(open, closed) · application_status(applied, screening, shortlisted, interview, rejected, hired)
+
+**profiles** — one row per Supabase auth user. user_id UUID PK (mirrors auth.users.id, NO cross-schema FK — app layer enforces via verified JWT), role user_role NOT NULL, full_name text NOT NULL, headline text, location text, years_experience numeric(4,1), desired_job_type job_type, open_to_remote bool NOT NULL default false
+
+**companies** — id UUID PK default gen_random_uuid(), name text NOT NULL, website text, size text, about text, owner_user_id UUID NOT NULL FK→profiles.user_id
+
+**recruiter_profiles** — user_id UUID PK FK→profiles.user_id, company_id UUID NOT NULL FK→companies.id, full_name text NOT NULL
+
+**resumes** — id UUID PK default gen_random_uuid(), candidate_id UUID NOT NULL FK→profiles.user_id, file_path text, raw_text text, parsed_json jsonb, ats_score numeric(5,2), ats_breakdown jsonb, skills text[], embedding vector(384), status resume_status NOT NULL default 'uploaded', error_message text, created_at timestamptz NOT NULL default now()
+
+**jobs** — id UUID PK default gen_random_uuid(), company_id UUID NOT NULL FK→companies.id, recruiter_id UUID NOT NULL FK→recruiter_profiles.user_id, title text NOT NULL, description text, location text, remote bool NOT NULL default false, job_type job_type, min_experience numeric(4,1), required_skills text[], parsed_json jsonb, embedding vector(384), status job_status NOT NULL default 'open', created_at timestamptz NOT NULL default now()
+
+**applications** — id UUID PK default gen_random_uuid(), job_id UUID NOT NULL FK→jobs.id, candidate_id UUID NOT NULL FK→profiles.user_id, resume_id UUID NOT NULL FK→resumes.id, status application_status NOT NULL default 'applied', match_score numeric(5,2), match_breakdown jsonb, applied_at timestamptz NOT NULL default now(), UNIQUE(job_id, candidate_id) = uq_applications_job_candidate
+
+**interview_questions** — id UUID PK default gen_random_uuid(), application_id UUID NOT NULL FK→applications.id ON DELETE CASCADE, question text NOT NULL, category text, targets_skill text, created_at timestamptz NOT NULL default now()
+
+**skills** — id serial PK, name text NOT NULL UNIQUE, category text, flagged bool NOT NULL default false. Taxonomy for autocomplete/moderation; fast-path matching uses the text[] columns above.
+
+**Indexes** (beyond PKs/uniques): ix_resumes_embedding_hnsw + ix_jobs_embedding_hnsw (HNSW, vector_cosine_ops) · ix_resumes_skills_gin + ix_jobs_required_skills_gin (GIN on text[]) · ix_jobs_location + ix_jobs_job_type (btree)
 
 ## API Endpoints
 
