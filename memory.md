@@ -228,3 +228,29 @@ appends here + updates the audit after finishing. Never store secret values here
 - Re-run anytime: cd apps/api && .venv/Scripts/python.exe scripts/seed.py
 
 ---
+
+## Step 3.1 — Supabase Auth + Signup/Login UI
+**Timestamp:** 2026-07-12T10:10:00Z
+**Status:** COMPLETE
+
+### What was done
+- Installed @supabase/supabase-js 2.110.2 + @supabase/ssr 0.12.0
+- lib/supabase/client.ts (createBrowserClient) + lib/supabase/server.ts (createServerClient with the @supabase/ssr getAll/setAll cookie pattern — required for 3.3 middleware sessions)
+- (auth) route group: /signup (two-button role selector → signUp with options.data={role}), /login, POST /logout route handler (signOut + 303 → /login)
+- lib/bootstrap-profile.ts: feature-flagged POST /profiles/bootstrap call (BOOTSTRAP_ENABLED=false until 3.2; non-fatal by design)
+- apps/web/.env.local created by user (URL + anon key); Supabase Confirm-email toggled OFF
+- QA green: REST signup issued session with user_metadata.role=candidate (proves confirm-email off); auth.users shows role; duplicate signup → "User already registered" (shown as friendly form error); /signup + /login render 200; POST /logout → 303 to /login; git grep finds zero password hashing/storage code
+- Commit: feat(auth): supabase auth signup/login with role metadata
+
+### Decisions
+- DECISION CHANGE: Supabase Auth replaces the earlier Auth.js plan — DB, storage and auth in one free service, no password custody, JWT independently verifiable in FastAPI (3.2)
+- Role captured at signup in user_metadata.role — single source for role routing until profiles row exists
+- Auth pages deliberately minimal Tailwind — design system + animation stacks arrive in Phase 4, not before
+
+### Key values for future steps
+- LAUNCH BLOCKER → Phase 15.1: re-enable Supabase email confirmation before launch
+- Test user exists: qa.candidate.31@example.com (candidate) — visible in dashboard Users; reusable for 3.2/3.3 testing
+- 3.2 must: build POST /profiles/bootstrap, then flip BOOTSTRAP_ENABLED=true in lib/bootstrap-profile.ts and remove the flag
+- ACTIVE env vars now: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY (apps/web/.env.local)
+
+---

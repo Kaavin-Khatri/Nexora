@@ -16,6 +16,7 @@ history lives in memory.md. Never store secret values here.
 
 ## Services
 - Supabase (Postgres + pgvector + Auth + Storage): project ref `vduadmxexdgkhmkxloyd`, region ap-south-1 (Mumbai), dashboard https://supabase.com/dashboard/project/vduadmxexdgkhmkxloyd — pgvector enabled
+- Supabase Auth: email/password provider, role captured at signup in user_metadata.role; **Confirm email OFF for dev (LAUNCH BLOCKER — re-enable in 15.1)**; web uses @supabase/ssr cookie-based sessions
 - Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL
 - Vercel: account ready, hosts apps/web (deploy in Phase 14.2)
 - Render: account ready, hosts apps/api (deploy in Phase 14.1)
@@ -32,8 +33,8 @@ Canonical names only — values live in git-ignored .env files / host dashboards
 
 | Var | Owner | Secret | Status |
 |-----|-------|--------|--------|
-| NEXT_PUBLIC_SUPABASE_URL | apps/web | no | planned |
-| NEXT_PUBLIC_SUPABASE_ANON_KEY | apps/web | no (browser-safe, RLS-limited) | planned |
+| NEXT_PUBLIC_SUPABASE_URL | apps/web | no | ACTIVE (.env.local) |
+| NEXT_PUBLIC_SUPABASE_ANON_KEY | apps/web | no (browser-safe, RLS-limited) | ACTIVE (.env.local) |
 | NEXT_PUBLIC_API_URL | apps/web | no | ACTIVE (default `http://localhost:8000`) |
 | DATABASE_URL | apps/api | YES (transaction pooler :6543) | ACTIVE |
 | DIRECT_DATABASE_URL | apps/api | YES (session pooler :5432, migrations) | ACTIVE |
@@ -123,6 +124,9 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 
 ## Components
 - apps/web/lib/api-client.ts — the ONLY web→api path: `api<T>(path, init?)`, base URL from NEXT_PUBLIC_API_URL (default localhost:8000), throws ApiError(status, message) on non-2xx (parses FastAPI `detail`)
+- apps/web/lib/supabase/client.ts (browser) + server.ts (server components/route handlers, @supabase/ssr getAll/setAll cookie pattern)
+- apps/web/lib/bootstrap-profile.ts — feature-flagged POST /profiles/bootstrap (BOOTSTRAP_ENABLED=false until 3.2)
+- apps/web/app/(auth)/signup + login pages (client components, minimal Tailwind); app/logout/route.ts (POST → signOut → 303 /login)
 - apps/web/app/debug/page.tsx — TEMP handshake page rendering /health; delete in Phase 4
 - apps/web default create-next-app page (app/layout.tsx, app/page.tsx)
 
@@ -132,6 +136,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - Port 5432 = migrations only; port 6543 pooler = runtime
 - pnpm workspace source of truth is pnpm-workspace.yaml (pnpm 11 ignores package.json `workspaces`)
 - dev:api runs the venv python directly (`--app-dir apps/api`) — no activation required
+- Supabase Auth replaces the earlier Auth.js plan: DB + storage + auth in one free service, zero password custody in Nexora code, JWT independently verifiable in FastAPI (3.2)
 - Seeds exclude embeddings until the pipeline exists — no fake vectors ever; seed is insert-only on natural keys so re-runs never duplicate or overwrite (Phase 7.3 backfill survives re-seeding)
 - Formatting: Prettier defaults, no .prettierrc (zero bikeshedding; Prettier 3 respects .gitignore); eslint-config-prettier disables conflicting ESLint rules
 - Python lint/format: ruff, line-length 100, target py311 (syntax floor; venv runs 3.14)
@@ -144,6 +149,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
 
 ## Known Issues
+- **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1
 - Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)
 - db.<ref>.supabase.co (true direct connection) is IPv6-only and unreachable from this network — DIRECT_DATABASE_URL uses the session pooler (:5432) instead
 - Python 3.14.6 is ahead of the plan's 3.11 target — all current deps installed fine; if a future dep lacks 3.14 wheels, install Python 3.11 alongside
