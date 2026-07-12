@@ -1,0 +1,29 @@
+# ============================================================
+# OPTIONAL LOCAL FALLBACK — NOT USED BY DEFAULT
+#
+# Nexora runs against Supabase (Postgres + pgvector) in normal
+# development and production. This compose file exists only for
+# the day the Supabase free-tier project is paused and you need
+# a local database to keep working.
+#
+# Usage (requires Docker Desktop):
+#   docker compose up -d
+#   -> Postgres 16 + pgvector on localhost:5433
+#      (5433 to avoid clashing with any local Postgres on 5432)
+#   Then point apps/api/.env DATABASE_URL at:
+#   postgresql://postgres:postgres@localhost:5433/postgres
+#
+# Switch back to Supabase by restoring the original .env values.
+# ============================================================
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - nexora_pgdata:/var/lib/postgresql/data
+
+volumes:
+  nexora_pgdata:

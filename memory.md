@@ -106,3 +106,26 @@ appends here + updates the audit after finishing. Never store secret values here
 - Venv: apps/api/.venv — activate with apps/api/.venv/Scripts/Activate.ps1
 
 ---
+
+## Step 1.2 — Lint, Format & Local Dev Ergonomics
+**Timestamp:** 2026-07-12T06:25:00Z
+**Status:** COMPLETE
+
+### What was done
+- apps/web: added prettier 3.9.5 + eslint-config-prettier 10.1.8 (flat config entry appended in eslint.config.mjs), `format` script; ran prettier repo-wide once (only next.config.ts changed)
+- apps/api: requirements-dev.txt (-r requirements.txt + ruff), pyproject.toml [tool.ruff] line-length 100 / target py311; ruff 0.15.21 installed in venv
+- Root README.md: what Nexora is, stack, run instructions for both apps, lint/format commands, link to codebase_audit.md
+- docker-compose.yml: pgvector/pgvector:pg16 on port 5433, named volume nexora_pgdata — commented as OPTIONAL LOCAL FALLBACK only
+- QA: pnpm --filter web lint clean; ruff check + ruff format --check clean; Docker not installed so compose validation deferred to first use
+- Commit: chore(tooling): eslint+prettier, ruff, readme, optional local pg compose
+
+### Decisions
+- Prettier defaults (no .prettierrc) — zero config to argue about; Prettier 3 respects .gitignore for ignores
+- Ruff line-length 100, target py311 (floor for syntax compat even though local venv is 3.14)
+- Local pg compose is fallback ONLY — Supabase stays primary; port 5433 to avoid clashing with any local Postgres
+
+### Key values for future steps
+- Format/lint: pnpm --filter web lint | format; ruff check | format apps/api (ruff.exe lives in the venv Scripts/)
+- Local fallback DB (only if Supabase paused): docker compose up -d → postgresql://postgres:postgres@localhost:5433/postgres
+
+---

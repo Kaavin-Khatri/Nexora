@@ -10,8 +10,8 @@ history lives in memory.md. Never store secret values here.
 - Docker: not installed (Supabase is the primary database)
 
 ## Stack & Versions
-- apps/web: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4.3.2, ESLint 9.39.5, import alias `@/*`
-- apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pydantic 2.13.4, pydantic-settings 2.14.2, python-dotenv
+- apps/web: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4.3.2, ESLint 9.39.5 + Prettier 3.9.5 (eslint-config-prettier 10.1.8), import alias `@/*`
+- apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pydantic 2.13.4, pydantic-settings 2.14.2, python-dotenv, ruff 0.15.21 (dev)
 - Monorepo: pnpm workspace (pnpm-workspace.yaml), single lockfile at root
 
 ## Services
@@ -50,6 +50,8 @@ nexora/
 ├── pnpm-workspace.yaml     # packages: apps/web; allowBuilds
 ├── pnpm-lock.yaml
 ├── .gitignore
+├── README.md               # what/stack/run/lint instructions
+├── docker-compose.yml      # OPTIONAL local pgvector fallback (:5433)
 ├── memory.md
 ├── codebase_audit.md
 ├── node_modules/           # (ignored)
@@ -57,16 +59,18 @@ nexora/
     ├── web/                # Next.js 16 App Router
     │   ├── app/            # layout.tsx, page.tsx, globals.css
     │   ├── public/
-    │   ├── package.json    # name: web
+    │   ├── package.json    # name: web; scripts: dev/build/start/lint/format
     │   ├── next.config.ts
     │   ├── tsconfig.json
     │   ├── postcss.config.mjs
-    │   ├── eslint.config.mjs
+    │   ├── eslint.config.mjs   # next + ts + prettier (flat)
     │   └── .env.example
     └── api/
         ├── app/
         │   └── main.py     # FastAPI app, GET /health
         ├── requirements.txt
+        ├── requirements-dev.txt  # + ruff
+        ├── pyproject.toml  # [tool.ruff] line-length 100, py311
         ├── .env.example
         └── .venv/          # (ignored) Python 3.14.6
 ```
@@ -86,6 +90,9 @@ nexora/
 - Port 5432 = migrations only; port 6543 pooler = runtime
 - pnpm workspace source of truth is pnpm-workspace.yaml (pnpm 11 ignores package.json `workspaces`)
 - dev:api runs the venv python directly (`--app-dir apps/api`) — no activation required
+- Formatting: Prettier defaults, no .prettierrc (zero bikeshedding; Prettier 3 respects .gitignore); eslint-config-prettier disables conflicting ESLint rules
+- Python lint/format: ruff, line-length 100, target py311 (syntax floor; venv runs 3.14)
+- docker-compose.yml is a fallback ONLY (Supabase paused scenario); port 5433 avoids local 5432 clashes
 
 ## Security
 - Key custody: anon/publishable keys = browser-safe (RLS-limited); service_role/secret keys + DB password = server-only, never in frontend, chat, or git
