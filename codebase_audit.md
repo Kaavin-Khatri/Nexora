@@ -65,10 +65,11 @@ nexora/
     │   ├── app/            # layout.tsx (fonts), page.tsx (minimal landing), globals.css (ALL tokens)
     │   │   ├── (auth)/     # signup, login
     │   │   ├── logout/     # POST route handler
-    │   │   ├── candidate/dashboard/   # placeholder (real one in later phase)
-    │   │   ├── recruiter/dashboard/   # placeholder
+    │   │   ├── candidate/  # layout.tsx (shell) + dashboard/ (placeholder content)
+    │   │   ├── recruiter/  # layout.tsx (shell) + dashboard/ (placeholder content)
     │   │   └── styleguide/ # dev-only visual regression page (404 in prod)
     │   ├── components/ui/  # 17 shadcn primitives
+    │   ├── components/layout/  # app-shell, sidebar, topbar, page-header
     │   ├── lib/            # api-client, supabase/, bootstrap-profile, nav.ts, utils.ts (cn)
     │   ├── public/
     │   ├── package.json    # name: web; scripts: dev/build/start/lint/format
@@ -142,6 +143,12 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - apps/web/lib/nav.ts — NAV: Record<Role, NavItem[]> consumed by the Phase 4 shell
 - apps/web/app/candidate/dashboard + app/recruiter/dashboard — placeholder server components (name + role from session)
 - apps/web/components/ui/* — 17 shadcn primitives (see Stack); Field family is the form pattern
+- apps/web/components/layout/ — the app shell (all role-agnostic, driven by `role` prop + NAV):
+  - sidebar.tsx: Logo, NavLinks (active = aria-current + sidebar-accent, prefix-matched), Sidebar (desktop aside, hidden < lg)
+  - topbar.tsx: sticky w/ backdrop-blur; mobile Sheet nav (< lg, closes on navigate); avatar dropdown → Profile + Logout (form POST /logout)
+  - app-shell.tsx: Sidebar + Topbar + max-w-6xl content (min-w-0 overflow guard)
+  - page-header.tsx: PageHeader(title, description?, action?) — required opener for every page
+- Per-role: app/candidate/layout.tsx + app/recruiter/layout.tsx (thin server components → AppShell)
 - apps/web/app/styleguide — dev-only token + primitive regression page
 - apps/web/app/page.tsx — minimal token-clean landing (real marketing page in a later phase)
 

@@ -342,3 +342,27 @@ appends here + updates the audit after finishing. Never store secret values here
 - GSAP/anime.js animation stacks: intentionally NOT installed in 4.1 — first animation surface is the 4.2 shell
 
 ---
+
+## Step 4.2 — Dashboard Shell (sidebar / topbar / responsive)
+**Timestamp:** 2026-07-12T13:20:00Z
+**Status:** COMPLETE
+
+### What was done
+- SHARED components/layout/: sidebar.tsx (Logo + NavLinks + Sidebar — desktop aside, hidden below lg), topbar.tsx (sticky, backdrop-blur; mobile Sheet nav trigger below lg; avatar dropdown with email, Profile link, Logout form POST → /logout), app-shell.tsx (Sidebar + Topbar + max-w-6xl main; min-w-0 guards horizontal overflow), page-header.tsx (title/description/action — every page uses it from now on)
+- PER-ROLE: app/candidate/layout.tsx + app/recruiter/layout.tsx (server components: getClaims → AppShell with role/name/email). Dashboards rebuilt: PageHeader + welcome Card via shell
+- lib/nav.ts extended with lucide icons per item (additive to the locked shape)
+- Sheet nav closes on navigate (controlled open state); active nav = aria-current="page" + bg-sidebar-accent/text-sidebar-primary, prefix-matched so child routes keep parent highlighted
+- QA green (server-rendered with real role cookies): candidate shell shows Dashboard/Jobs/Resume/Applications/Profile with zero recruiter items and vice versa; active state in SSR HTML; sheet trigger lg:hidden present; POST /logout → 303 /login. (Dropdown content is portal-rendered on open, so the logout form is verified via its working target + source, not SSR HTML.)
+- Animation note: shell motion = shadcn/tw-animate CSS (sheet slide, transitions) — GSAP deliberately not added for a sidebar
+
+### Decisions
+- Shared vs per-role: everything in components/layout/ is role-agnostic and driven by the `role` prop + NAV map; the ONLY per-role code is the two thin layout files
+- Topbar has no page-title — PageHeader owns titles inside content (simpler, avoids double title sources)
+- Logout in the avatar menu is a plain form POST (browser follows 303) — no client fetch dance
+
+### Key values for future steps
+- New pages: drop into app/candidate/* or app/recruiter/* → shell applies automatically; start content with <PageHeader>
+- Adding a nav item = one line in lib/nav.ts (label/href/icon)
+- USER VISUAL CHECK pending: eyeball 360px width for horizontal scroll (structurally guarded: min-w-0 + no fixed widths + sheet below lg)
+
+---
