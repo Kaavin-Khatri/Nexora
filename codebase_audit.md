@@ -136,7 +136,9 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | PATCH | /candidates/me | bearer + candidate | partial update; extra="forbid" + ranges → 422; returns updated profile |
 | POST | /resumes | bearer + candidate | multipart; .pdf/.docx ext+content-type, ≤5MB → 415/413; uploads to bucket, inserts row, kicks off parse; returns {id,status} |
 | GET | /resumes/latest | bearer + candidate | candidate's newest resume or null |
-| GET | /resumes/{id} | bearer + candidate | owner-only; 404 (not 403) for non-owner |
+| GET | /resumes/{id} | bearer + candidate | owner-only; 404 (not 403) for non-owner; includes parsed_json |
+| POST | /resumes/{id}/reparse | bearer + candidate owner | re-runs pipeline on stored file (owner-only, 404 else) |
+| PATCH | /resumes/{id}/skills | bearer + candidate owner | replace skills list (trim+dedupe); owner-only, 404 else |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
@@ -148,7 +150,9 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - apps/web/middleware.ts — redirect matrix + session refresh (see Decisions)
 - apps/web/lib/nav.ts — NAV: Record<Role, NavItem[]> consumed by the Phase 4 shell
 - apps/web/app/candidate/dashboard + app/recruiter/dashboard — placeholder server components (name + role from session)
-- apps/web/components/ui/* — 17 shadcn primitives (see Stack); Field family is the form pattern
+- apps/web/app/candidate/profile/ — page.tsx (server fetch) + profile-form.tsx (rhf + zod client form, /candidates/me)
+- apps/web/app/candidate/resume/ — page.tsx (server: GET /resumes/latest), resume-upload.tsx (state machine: dropzone → XHR-progress upload → processing/poll → parsed → renders review; failed/Retry; 30s poll timeout), resume-review.tsx (sectioned cards: Contact, Skills chip editor, Experience timeline, Education, Certifications — honest empty text per section; Re-parse + Re-upload). v1 editing = skills only.
+- apps/web/components/ui/* — 18 shadcn primitives (see Stack); Field family is the form pattern
 - apps/web/components/layout/ — the app shell (all role-agnostic, driven by `role` prop + NAV):
   - sidebar.tsx: Logo, NavLinks (active = aria-current + sidebar-accent, prefix-matched), Sidebar (desktop aside, hidden < lg)
   - topbar.tsx: sticky w/ backdrop-blur; mobile Sheet nav (< lg, closes on navigate); avatar dropdown → Profile + Logout (form POST /logout)

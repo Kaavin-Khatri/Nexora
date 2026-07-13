@@ -472,3 +472,29 @@ appends here + updates the audit after finishing. Never store secret values here
 - ats_score/ats_breakdown still null (Phase 6); embedding still null (Phase 7)
 
 ---
+
+## Step 5.4 — Parsed Resume Review UI
+**Timestamp:** 2026-07-12T17:15:00Z
+**Status:** COMPLETE
+
+### What was done
+- API: ResumeOut now includes parsed_json (so the review UI gets sections). New endpoints (owner-only, 404-not-403 via shared _owned_or_404 helper): PATCH /resumes/{id}/skills (full-list replace, trim + case-insensitive dedupe preserving order → resume.skills) and POST /resumes/{id}/reparse (resets status, re-kicks parse_resume). SkillsUpdate schema (extra="forbid").
+- Web lib/upload-resume.ts: ParsedResume TS type (mirrors pydantic), ResumeStatus extended (skills, parsed_json), reparseResume + updateSkills clients.
+- resume-review.tsx: sectioned cards — Contact (name/email/phone/location + summary), Skills (editable chip editor), Experience (vertical timeline with bullets), Education, Certifications. Every missing section renders honest text ("No certifications found in your resume") not a blank hole. Re-parse + Re-upload actions.
+- resume-upload.tsx: state machine now renders <ResumeReview> on the parsed phase; onReparse (POST reparse → poll live through parsing→parsed) and onReupload (reset to dropzone). Parse-status banner already covers uploaded/parsing.
+- SkillsEditor: optimistic add/remove, PATCH per change, revert + toast on failure.
+- QA all green (live): rich resume renders every section incl. real certs + timeline; skills add/remove persist across re-GET; case-insensitive dedupe ("Python","python","PYTHON" → one); reparse walks uploaded→parsing→parsed live; non-owner PATCH skills AND reparse both → 404; sparse resume renders "No certifications found in your resume" + name + its one experience (honest empty proven).
+- Commit: feat(resume): parsed review ui + skills editing
+
+### Decisions
+- v1 EDIT SCOPE = SKILLS ONLY. Full parsed-field editing (contact/experience/education/certs) DEFERRED. Rationale: skills are the only parsed field that feeds the Phase 8 matcher (resume.skills column); everything else is display-only for trust. Editing them would be pure UI polish with no matching impact — YAGNI until asked.
+- Skills chips edit the resume.skills COLUMN (matcher-facing, editable); parsed_json stays the immutable parse record. Other sections render from parsed_json (display-only).
+- Re-upload = new POST /resumes (new row, becomes latest); Re-parse = POST /reparse (same file, same row). Both re-run the pipeline.
+- No animation library on the review UI — legibility/trust over motion (ponytail + ui-ux: right call for a data-review surface)
+
+### Key values for future steps
+- Endpoints now: PATCH /resumes/{id}/skills, POST /resumes/{id}/reparse (both candidate owner-only)
+- resume.skills is the editable matcher input; parsed_json is the read-only parse record
+- Review sections live in app/candidate/resume/resume-review.tsx
+
+---

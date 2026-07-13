@@ -11,9 +11,11 @@ import { cn } from "@/lib/utils";
 import {
   getAccessToken,
   getResumeStatus,
+  reparseResume,
   type ResumeStatus,
   uploadResume,
 } from "@/lib/upload-resume";
+import { ResumeReview } from "./resume-review";
 
 const ACCEPT = {
   "application/pdf": [".pdf"],
@@ -142,6 +144,34 @@ export function ResumeUpload({ initial }: { initial: ResumeStatus | null }) {
     setProgress(0);
     setErrorMsg(null);
   };
+
+  async function onReparse() {
+    if (!resume?.id) return;
+    setPhase("processing");
+    setErrorMsg(null);
+    try {
+      const token = await getAccessToken();
+      const r = await reparseResume(resume.id, token);
+      setResume(r);
+      poll(resume.id);
+    } catch {
+      setErrorMsg("Could not start re-parsing. Please try again.");
+      setPhase("error");
+    }
+  }
+
+  // Parsed: the full review UI (its own layout, not the upload card).
+  if (phase === "done" && resume?.parsed_json) {
+    return (
+      <ResumeReview
+        resumeId={resume.id}
+        parsed={resume.parsed_json}
+        skills={resume.skills ?? []}
+        onReupload={reset}
+        onReparse={onReparse}
+      />
+    );
+  }
 
   return (
     <Card className="max-w-xl">
