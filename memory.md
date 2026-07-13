@@ -444,3 +444,31 @@ appends here + updates the audit after finishing. Never store secret values here
 - Second test candidate: qa.candidate2.52@example.com (for owner/non-owner tests)
 
 ---
+
+## Step 5.3 — Parse Pipeline: Extract → Groq Structuring (blank-first)
+**Timestamp:** 2026-07-12T16:30:00Z
+**Status:** COMPLETE
+
+### What was done
+- Manual: GROQ_API_KEY (gsk_) added to apps/api/.env. Deps: pdfplumber 0.11.10, python-docx, groq 1.5.0.
+- app/schemas/resume_parsed.py: ParsedResume (Contact, Experience, Education nested) — EVERY field optional, lists default [], extra="ignore"
+- app/services/llm_client.py: THE single Groq gateway. chat_json(system, user, model: type[T]) — response_format json_object, temp 0.1, model from GROQ_MODEL; on invalid JSON / ValidationError retries ONCE with the error appended, then raises. TypeVar (not PEP 695 generics — keeps ruff py311 floor). lru_cached client.
+- app/services/resume_parser.py: extract_text(bytes, ext) — pdfplumber page-join (PDF) / python-docx paragraph-join (DOCX), whitespace-normalized; <200 chars → ParseError("Could not read text — is this a scanned/image PDF?"). structure_resume() builds the blank-first system prompt + schema hint → chat_json.
+- app/workers/tasks.py: STUB replaced — download → extract → structure → persist raw_text + parsed_json + skills (denormalized), status=parsed. ParseError → failed with its friendly message; any other exception → logged + generic friendly message. Own SessionLocal (bg task).
+- QA all green (live Groq + storage): rich DOCX → full sensible JSON (contact, 10 skills, 2 roles, education, cert, total_years_estimate 5.0, resume.skills populated); sparse DOCX → phone null + certifications [] (BLANK-FIRST PASS, nothing invented); scanned/low-text PDF → status failed with exact scanned-PDF message; retry-once proven (throwaway impossible schema → exactly 2 attempts logged then clean ValidationError raise).
+- Commit: feat(ai): resume parse pipeline — extract + groq structuring, blank-first
+
+### Decisions
+- BLANK-FIRST POLICY (verbatim, in the system prompt AND enforced by all-optional pydantic — same convention as the Siko resume parser, deliberate reuse): "If a field is not explicitly present in the resume, return null. Never infer or fabricate values."
+- Model llama-3.3-70b-versatile (GROQ_MODEL), temperature 0.1, retry-once on invalid JSON/schema
+- llm_client.py is the SINGLE Groq gateway — no other file may import groq (grep-enforced: only llm_client imports it)
+- retry-once tested via a throwaway impossible schema (not by mutating production code) — proves 1 retry + clean raise, nothing to revert
+- resume.skills column populated from parsed.skills here (denormalized for the Phase 8 matcher)
+
+### Key values for future steps
+- parsed_json shape = ParsedResume (contact{name,email,phone,location}, summary, skills[], experience[{title,company,start,end,current,bullets[]}], education[{degree,institution,year}], certifications[], total_years_estimate)
+- 5.4 review UI reads resumes.parsed_json + raw_text; edits write back
+- Groq call inventory: #1 resume structuring (llm_client.chat_json). Future LLM calls go through the same gateway.
+- ats_score/ats_breakdown still null (Phase 6); embedding still null (Phase 7)
+
+---

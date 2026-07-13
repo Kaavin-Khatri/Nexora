@@ -18,7 +18,7 @@ history lives in memory.md. Never store secret values here.
 ## Services
 - Supabase (Postgres + pgvector + Auth + Storage): project ref `vduadmxexdgkhmkxloyd`, region ap-south-1 (Mumbai), dashboard https://supabase.com/dashboard/project/vduadmxexdgkhmkxloyd — pgvector enabled
 - Supabase Auth: email/password provider, role captured at signup in user_metadata.role; **Confirm email OFF for dev (LAUNCH BLOCKER — re-enable in 15.1)**; web uses @supabase/ssr cookie-based sessions
-- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL
+- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL. ALL Groq calls go through app/services/llm_client.py (the single gateway — no other file imports groq). Call inventory: #1 resume structuring.
 - Supabase Storage: private bucket `resumes` — all access server-mediated via the service-role key (app/core/storage.py); files at {user_id}/{uuid}.{ext}; no public policies
 - Vercel: account ready, hosts apps/web (deploy in Phase 14.2)
 - Render: account ready, hosts apps/api (deploy in Phase 14.1)
@@ -193,6 +193,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
 
 ## Known Issues
+- Resume parse pipeline (app/workers/tasks.py → services/): download → extract_text (pdfplumber/python-docx, whitespace-normalized, <200 chars → friendly scanned-PDF ParseError) → structure_resume (Groq via llm_client, blank-first) → persist raw_text + parsed_json + skills, status=parsed. Any failure → status=failed + human-readable error_message (ParseError shows its own message; other errors show a generic one and log the detail). BLANK-FIRST enforced at BOTH the prompt layer and the all-optional pydantic schema.
 - Resume parsing uses FastAPI in-process BackgroundTasks — dies with the process, so a resume can be left stuck at 'parsing'. Acceptable at this scale; UI 30s poll-timeout + Retry covers it. Upgrade path: arq + Redis.
 - **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1
 - Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)

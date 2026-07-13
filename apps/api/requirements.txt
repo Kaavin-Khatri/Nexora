@@ -9,4 +9,7 @@ PyJWT
 cryptography
 supabase
 python-multipart
+pdfplumber
+python-docx
+groq
 python-dotenv
