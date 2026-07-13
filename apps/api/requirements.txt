@@ -12,4 +12,5 @@ python-multipart
 pdfplumber
 python-docx
 groq
+fastembed
 python-dotenv

@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -8,8 +10,17 @@ from app.core.security import CurrentUser, get_current_user
 from app.db.models import Profile
 from app.db.session import get_db
 from app.routers import candidates, resumes
+from app.services.embedding_service import model_loaded, warmup
 
-app = FastAPI(title="Nexora API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Warm the embedding model at startup so the first parse isn't cold.
+    warmup()
+    yield
+
+
+app = FastAPI(title="Nexora API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,7 +36,8 @@ app.include_router(resumes.router)
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    # model_loaded is read by Phase 14 monitoring.
+    return {"status": "ok", "model_loaded": model_loaded()}
 
 
 @app.get("/health/db")

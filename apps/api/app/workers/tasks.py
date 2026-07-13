@@ -6,6 +6,7 @@ from app.core.storage import download_resume
 from app.db.models import Resume
 from app.db.session import SessionLocal
 from app.services.ats_scorer import score_resume
+from app.services.embedding_service import build_resume_embed_text, embed_text
 from app.services.resume_parser import ParseError, extract_text, structure_resume
 from app.services.skill_extractor import extract_skills
 
@@ -36,12 +37,14 @@ def parse_resume(resume_id: uuid.UUID) -> None:
         # canonical, taxonomy-normalized union of listed + demonstrated skills
         skills = extract_skills(db, parsed, raw_text)
         ats = score_resume(parsed, raw_text)
+        embedding = embed_text(build_resume_embed_text(parsed, skills))
 
         resume.raw_text = raw_text
         resume.parsed_json = parsed.model_dump()
         resume.skills = skills or None  # matcher input (Phase 8)
         resume.ats_score = ats.total
         resume.ats_breakdown = ats.model_dump()
+        resume.embedding = embedding  # 384-dim, same space jobs join in Phase 7
         resume.status = "parsed"
         db.commit()
     except ParseError as exc:

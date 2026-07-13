@@ -550,3 +550,32 @@ appends here + updates the audit after finishing. Never store secret values here
 - resume.skills is canonical, deduped, taxonomy-aligned — ready as the Phase 8 matcher's skill-overlap input
 
 ---
+
+## Step 6.3 — Embeddings via fastembed
+**Timestamp:** 2026-07-12T19:45:00Z
+**Status:** COMPLETE
+
+### What was done
+- requirements: fastembed 0.8.0. app/services/embedding_service.py: lazy singleton TextEmbedding(BAAI/bge-small-en-v1.5, cache_dir=FASTEMBED_CACHE); warmup(), model_loaded(), embed_text(text)→list[float] len 384; build_resume_embed_text(parsed, skills); _top_bullets (quantified-first, deterministic).
+- Parse task extended: after skills → embed_text(build_resume_embed_text(...)) → resume.embedding (384-dim).
+- main.py: FastAPI lifespan warms the model at startup; /health now returns {"status":"ok","model_loaded":bool} (Phase 14 monitoring).
+- scripts/backfill_embeddings.py: idempotently embeds parsed resumes with NULL embedding; second run no-op.
+- .gitignore: .fastembed_cache/
+- QA all green: warmup + embed → 384-dim; /health model_loaded=true after boot; fresh parse → vector_dims(embedding)=384, non-null; backfill filled 3 nulls (incl. older pre-embedding resumes) then run 2 = "0 needing" (no-op); MEASURED WARMUP RSS = 220.5 MB working set (peak 251 MB), 43% of the 512MB ceiling, 291MB headroom.
+- Commit: feat(ai): fastembed embeddings + warmup + backfill
+
+### Decisions
+- MODEL: BAAI/bge-small-en-v1.5, 384-dim, ONNX via fastembed — chosen over sentence-transformers to avoid the PyTorch footprint on the 512MB free tier. Measured RSS 220MB confirms the fit.
+- EMBED-TEXT TEMPLATE (VERBATIM — the JOB side must mirror this in 7.3 so both vectors share one semantic space):
+    "{summary or contact.name or 'Candidate'}. {total_years_estimate or 0} years experience. Skills: {skills csv}. {up to 5 strongest bullets}"
+  "strongest bullets" = quantified (digit-containing) bullets first, then the rest, original order within each group, capped at 5 — deterministic.
+- Lazy singleton + lifespan warmup: model loads once at startup; embed_text warms lazily as a safety net.
+- FASTEMBED_CACHE: .fastembed_cache locally (gitignored); set to /tmp/fastembed on Render (ephemeral disk).
+
+### Key values for future steps
+- embed_text(text)→384 floats; build_resume_embed_text(parsed, skills) for resumes
+- Phase 7.3: build_job_embed_text must produce the SAME template shape ({lead}. {years} years experience. Skills: {csv}. {free text}) — mirror it or matching degrades
+- resumes.embedding is now populated on every parse; backfill script covers historical rows
+- /health.model_loaded is the readiness signal for Phase 14
+
+---
