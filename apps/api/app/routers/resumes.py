@@ -101,6 +101,20 @@ def reparse(
     return resume
 
 
+@router.get("/{resume_id}/ats-score")
+def ats_score(
+    resume_id: uuid.UUID,
+    user: CurrentUser = Depends(require_role("candidate")),
+    db: Session = Depends(get_db),
+):
+    resume = _owned_or_404(db, resume_id, user.id)
+    return {
+        "status": resume.status,
+        "score": resume.ats_score,
+        "breakdown": resume.ats_breakdown,
+    }
+
+
 @router.patch("/{resume_id}/skills", response_model=ResumeOut)
 def update_skills(
     resume_id: uuid.UUID,

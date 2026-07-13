@@ -139,6 +139,7 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | GET | /resumes/{id} | bearer + candidate | owner-only; 404 (not 403) for non-owner; includes parsed_json |
 | POST | /resumes/{id}/reparse | bearer + candidate owner | re-runs pipeline on stored file (owner-only, 404 else) |
 | PATCH | /resumes/{id}/skills | bearer + candidate owner | replace skills list (trim+dedupe); owner-only, 404 else |
+| GET | /resumes/{id}/ats-score | bearer + candidate owner | {status, score, breakdown}; owner-only, 404 else |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
@@ -197,7 +198,8 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
 
 ## Known Issues
-- Resume parse pipeline (app/workers/tasks.py → services/): download → extract_text (pdfplumber/python-docx, whitespace-normalized, <200 chars → friendly scanned-PDF ParseError) → structure_resume (Groq via llm_client, blank-first) → persist raw_text + parsed_json + skills, status=parsed. Any failure → status=failed + human-readable error_message (ParseError shows its own message; other errors show a generic one and log the detail). BLANK-FIRST enforced at BOTH the prompt layer and the all-optional pydantic schema.
+- Resume parse pipeline (app/workers/tasks.py → services/): download → extract_text (pdfplumber/python-docx, whitespace-normalized, <200 chars → friendly scanned-PDF ParseError) → structure_resume (Groq via llm_client, blank-first) → score_resume (deterministic ATS) → persist raw_text + parsed_json + skills + ats_score + ats_breakdown, status=parsed. Any failure → status=failed + human-readable error_message. BLANK-FIRST enforced at BOTH the prompt layer and the all-optional pydantic schema.
+- ATS SCORER (app/services/ats_scorer.py): DETERMINISTIC + explainable, NO LLM (rules-not-vibes). Pure fn score_resume(parsed, raw_text) → total (0–100) + per-check breakdown; total = sum of rounded parts. Weights: contact 15 · sections 20 · quantified-bullets 20 · skills-band(8–20) 15 · length-band(300–900w) 10 · extraction-formatting 10 · action-verbs 10. Determinism pinned by tests/test_ats_scorer.py (golden totals). ats_breakdown JSONB = {total, checks:[{name,score,max,detail}]}.
 - Resume parsing uses FastAPI in-process BackgroundTasks — dies with the process, so a resume can be left stuck at 'parsing'. Acceptable at this scale; UI 30s poll-timeout + Retry covers it. Upgrade path: arq + Redis.
 - **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1
 - Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)

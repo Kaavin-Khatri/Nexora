@@ -498,3 +498,29 @@ appends here + updates the audit after finishing. Never store secret values here
 - Review sections live in app/candidate/resume/resume-review.tsx
 
 ---
+
+## Step 6.1 — Deterministic ATS Scorer
+**Timestamp:** 2026-07-12T18:05:00Z
+**Status:** COMPLETE
+
+### What was done
+- app/services/ats_scorer.py: score_resume(parsed, raw_text) → AtsResult(total, checks[Check{name,score,max,detail}]). PURE FUNCTION — no I/O, no LLM. total = sum of already-rounded parts (so parts always sum to total).
+- Wired into workers/tasks.py parse pipeline after structuring: persists resume.ats_score + resume.ats_breakdown (JSONB).
+- GET /resumes/{id}/ats-score (owner-only, 404 else) → {status, score, breakdown}.
+- tests/test_ats_scorer.py: strong/weak/near-empty fixtures with PINNED golden totals (100.0 / 37.15 / 4.07) + determinism + parts-sum-to-total + monotonic (strong>weak>empty) + bounds + no-crash. Runnable via venv python directly (no pytest dep) and pytest-discoverable.
+- QA all green: unit tests pass; grep confirms scorer imports no llm_client/groq; live end-to-end — real resume scored 71.6, breakdown total == parts sum == persisted score; scorer bit-identical on the same parse; non-owner ATS → 404.
+- Commit: feat(ats): deterministic scorer with breakdown
+
+### Decisions
+- ATS scoring is RULE-BASED ON PURPOSE — reproducible + explainable beats clever. Same resume → same score, every point traces to a named check. LLM deliberately NOT used (grep-enforced).
+- WEIGHTS (verbatim, sum=100): Contact completeness 15 (4 fields × 3.75) · Core sections present 20 (summary/skills/experience/education × 5) · Quantified bullets 20 (ratio of bullets containing a digit × 20) · Skills count 15 (ideal band 8–20 = full; below = linear; above = mild floor-11 penalty) · Length 10 (ideal 300–900 words; outside = linear penalty, floor 5) · Extraction formatting 10 (penalize short-line fragmentation + surviving table pipes) · Action verbs 10 (ratio of bullets starting with a fixed action-verb list × 10)
+- Determinism guarantee is STRUCTURAL: score_resume is a pure function; the unit test pins golden totals. (End-to-end reparse can vary only if Groq's parse differs — the scorer itself never does.)
+- Formatting check is a heuristic with a known ceiling (ponytail comment in code) — runs on the normalized raw_text; upgrade path = layout-aware pdfplumber extract_words if it ever matters.
+
+### Key values for future steps
+- ats_breakdown JSONB shape = {total: float, checks: [{name, score, max, detail}]}
+- Endpoint: GET /resumes/{id}/ats-score (candidate owner-only)
+- Dashboard payoff (later this phase) reads resume.ats_score + ats_breakdown
+- Run tests: apps/api/.venv/Scripts/python.exe apps/api/tests/test_ats_scorer.py
+
+---
