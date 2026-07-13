@@ -414,3 +414,33 @@ appends here + updates the audit after finishing. Never store secret values here
 - Adding a profile field = schema (both sides) + form control + (if it needs a column) a migration
 
 ---
+
+## Step 5.2 — Resume Upload → Storage → Parse Kickoff
+**Timestamp:** 2026-07-12T15:40:00Z
+**Status:** COMPLETE
+
+### What was done
+- Manual: created private Supabase Storage bucket `resumes`; SUPABASE_SERVICE_ROLE_KEY (sb_secret_) added to apps/api/.env
+- API deps: supabase 2.31.0, python-multipart added to requirements
+- app/core/storage.py: lru_cached service-role supabase client; upload_resume / download_resume against bucket "resumes" (BUCKET const)
+- app/routers/resumes.py: POST /resumes (multipart; ext AND content-type must both match .pdf/.docx, ≤5MB, non-empty; upload to {user_id}/{uuid}.{ext}; insert row status=uploaded; BackgroundTasks parse_resume; returns {id,status}). GET /resumes/latest (candidate's newest or null). GET /resumes/{id} (owner-only, 404 not 403 for non-owner). All require_role("candidate").
+- app/workers/tasks.py: parse_resume STUB (own SessionLocal session — bg task runs after response; set parsing → sleep 2s → parsed with empty parsed_json; try/except flips to failed+error_message on any exception). Real pipeline = 5.3.
+- app/schemas/resume.py: ResumeOut. Router wired in main.py.
+- Web: lib/upload-resume.ts (XHR uploader with real progress — the one authed call that bypasses api-client, justified by multipart+progress; getResumeStatus; getAccessToken). app/candidate/resume/page.tsx (server: GET /resumes/latest → initial). resume-upload.tsx (react-dropzone accept pdf/docx + maxSize 5MB with per-code rejection toasts; XHR progress bar; poll GET /{id} every 2s until parsed/failed; MAX_POLLS=15 → 30s timeout trips to error+Retry so a died bg task never hangs the UI; Retry resets to dropzone).
+- QA all green (live Supabase + storage): PDF + DOCX upload → uploaded→parsed; PNG → 415, 6MB → 413 (server-side); file at {user_id}/{uuid}.ext confirmed in bucket listing; non-owner candidate → 404, recruiter → 403, no token → 401; /resumes/latest → parsed; kill-mid-parse leaves row stuck 'parsing' → fresh upload recovers to parsed (UI timeout handles the stuck-row UX).
+- Commit: feat(resume): upload to storage + background parse kickoff
+
+### Decisions
+- Storage path convention: {user_id}/{uuid}.{ext} in private bucket `resumes`; all access server-mediated via service role (no public policies)
+- Poll interval 2s; non-owner access returns 404 not 403 so resource existence never leaks
+- KNOWN LIMITATION ACCEPTED: FastAPI BackgroundTasks runs in-process and dies with the process → a resume can be left stuck at 'parsing'. Acceptable at this scale; UI 30s poll-timeout + Retry (re-upload) covers it. Upgrade path if ever needed: arq + Redis.
+- Upload bypasses api-client via XHR only because fetch can't report upload progress; every other web→api call still goes through api-client
+- .docx content-type also accepts application/octet-stream (some browsers send it for docx)
+
+### Key values for future steps
+- Resume statuses drive everything downstream: uploaded → parsing → parsed/failed (StatusBadge already maps them)
+- 5.3 replaces the parse_resume STUB body (extraction + Groq structuring) — signature/status-contract stays; download_resume(path) is ready
+- Endpoints: POST /resumes, GET /resumes/latest, GET /resumes/{id} (all candidate-only)
+- Second test candidate: qa.candidate2.52@example.com (for owner/non-owner tests)
+
+---

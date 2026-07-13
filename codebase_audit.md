@@ -12,13 +12,14 @@ history lives in memory.md. Never store secret values here.
 ## Stack & Versions
 - apps/web: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4.3.2, ESLint 9.39.5 + Prettier 3.9.5 (eslint-config-prettier 10.1.8), import alias `@/*`
 - Design system: shadcn/ui (CLI v4, radix base) — avatar, badge, button, card, dialog, dropdown-menu, field (+separator; replaces removed "form"), input, label, select, sheet, skeleton, sonner, table, tabs, tooltip. Fonts via next/font: Sora (headings), Inter (body), JetBrains Mono (data). Icons: lucide-react.
-- apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pydantic 2.13.4, pydantic-settings 2.14.2, python-dotenv, ruff 0.15.21 (dev)
+- apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pgvector, pydantic 2.13.4, pydantic-settings 2.14.2, PyJWT 2.13 + cryptography (JWT), supabase 2.31 + python-multipart (storage/uploads), python-dotenv, ruff 0.15.21 (dev)
 - Monorepo: pnpm workspace (pnpm-workspace.yaml), single lockfile at root
 
 ## Services
 - Supabase (Postgres + pgvector + Auth + Storage): project ref `vduadmxexdgkhmkxloyd`, region ap-south-1 (Mumbai), dashboard https://supabase.com/dashboard/project/vduadmxexdgkhmkxloyd — pgvector enabled
 - Supabase Auth: email/password provider, role captured at signup in user_metadata.role; **Confirm email OFF for dev (LAUNCH BLOCKER — re-enable in 15.1)**; web uses @supabase/ssr cookie-based sessions
 - Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL
+- Supabase Storage: private bucket `resumes` — all access server-mediated via the service-role key (app/core/storage.py); files at {user_id}/{uuid}.{ext}; no public policies
 - Vercel: account ready, hosts apps/web (deploy in Phase 14.2)
 - Render: account ready, hosts apps/api (deploy in Phase 14.1)
 - UptimeRobot: account ready (keep-alive pings, Phase 14)
@@ -133,6 +134,9 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | POST | /profiles/bootstrap | bearer (any role) | {"status","user_id","role"} — idempotent |
 | GET | /candidates/me | bearer + candidate | profile (full_name, headline, location, years_experience, desired_job_type, open_to_remote) |
 | PATCH | /candidates/me | bearer + candidate | partial update; extra="forbid" + ranges → 422; returns updated profile |
+| POST | /resumes | bearer + candidate | multipart; .pdf/.docx ext+content-type, ≤5MB → 415/413; uploads to bucket, inserts row, kicks off parse; returns {id,status} |
+| GET | /resumes/latest | bearer + candidate | candidate's newest resume or null |
+| GET | /resumes/{id} | bearer + candidate | owner-only; 404 (not 403) for non-owner |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
@@ -189,6 +193,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
 
 ## Known Issues
+- Resume parsing uses FastAPI in-process BackgroundTasks — dies with the process, so a resume can be left stuck at 'parsing'. Acceptable at this scale; UI 30s poll-timeout + Retry covers it. Upgrade path: arq + Redis.
 - **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1
 - Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)
 - db.<ref>.supabase.co (true direct connection) is IPv6-only and unreachable from this network — DIRECT_DATABASE_URL uses the session pooler (:5432) instead

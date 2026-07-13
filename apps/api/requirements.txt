@@ -7,4 +7,6 @@ psycopg[binary]
 pgvector
 PyJWT
 cryptography
+supabase
+python-multipart
 python-dotenv
