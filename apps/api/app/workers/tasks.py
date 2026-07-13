@@ -7,6 +7,7 @@ from app.db.models import Resume
 from app.db.session import SessionLocal
 from app.services.ats_scorer import score_resume
 from app.services.resume_parser import ParseError, extract_text, structure_resume
+from app.services.skill_extractor import extract_skills
 
 logger = logging.getLogger("nexora.parse")
 
@@ -32,11 +33,13 @@ def parse_resume(resume_id: uuid.UUID) -> None:
         raw_text = extract_text(data, ext)
         parsed = structure_resume(raw_text)
 
+        # canonical, taxonomy-normalized union of listed + demonstrated skills
+        skills = extract_skills(db, parsed, raw_text)
         ats = score_resume(parsed, raw_text)
 
         resume.raw_text = raw_text
         resume.parsed_json = parsed.model_dump()
-        resume.skills = parsed.skills or None  # denormalized for matching (Phase 8)
+        resume.skills = skills or None  # matcher input (Phase 8)
         resume.ats_score = ats.total
         resume.ats_breakdown = ats.model_dump()
         resume.status = "parsed"

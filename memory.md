@@ -524,3 +524,29 @@ appends here + updates the audit after finishing. Never store secret values here
 - Run tests: apps/api/.venv/Scripts/python.exe apps/api/tests/test_ats_scorer.py
 
 ---
+
+## Step 6.2 — Skill Extraction & Taxonomy Normalization
+**Timestamp:** 2026-07-12T18:55:00Z
+**Status:** COMPLETE
+
+### What was done
+- app/services/skill_extractor.py: extract_skills(db, parsed, raw_text) unions source A (parsed.skills, listed) + source B (mine_skills — one Groq pass over raw_text for skills DEMONSTRATED in bullets, via llm_client → Groq call #2), then normalize_skills.
+- normalize_one/normalize_skills(db, names): trim → ALIASES map (lowercased→canonical) → case-insensitive taxonomy match → unmatched INSERT as category=uncategorized, flagged=True (savepoint-guarded against concurrent insert). Dedupe case-insensitive, order-preserving.
+- Wired into workers/tasks.py parse pipeline: resume.skills = extract_skills(...) (replaced the raw parsed.skills assignment) — runs after structuring, before embedding (Phase 7).
+- mine_skills is BEST-EFFORT: Groq failure → [] + warn, never fails the whole parse (structuring already succeeded).
+- QA all green: normalize (js/JS/JavaScript→JavaScript, postgres/psql→PostgreSQL, FastAPI pass-through, new skill→flagged uncategorized, re-normalize no dup); live end-to-end — resume listing only "Python, SQL" but with FastAPI/Docker/AWS/PostgreSQL in bullets → final resume.skills=[Python,SQL,FastAPI,Docker,AWS,PostgreSQL] (canonical casing), no duplicates on reparse. ATS tests still pass (scorer uses parsed.skills, unchanged).
+- Commit: feat(ai): skill extraction + taxonomy normalization
+
+### Decisions
+- SINGLE NORMALIZER: normalize_skills() in skill_extractor.py is shared by the resume AND job pipelines (Phase 7.3 reuses it). Divergence silently breaks matching → there is exactly one, here.
+- ALIAS MAP location: skill_extractor.py ALIASES dict. GROWTH RULE: add aliases as you meet them, ALWAYS in that one dict. Case variants need NO entry (taxonomy match is case-insensitive) — only abbreviations/alternate spellings (js, k8s, postgres, nextjs...).
+- Unmatched skills are inserted flagged=uncategorized (not dropped) so the taxonomy grows and flagged skills can be curated later.
+- resume.skills now = normalized union (matcher input); parsed_json.skills stays the raw LLM-listed set. ATS scorer still reads parsed.skills (pinned scores unchanged).
+- mine_skills failure is non-fatal (bonus pass) — degrades to listed skills only.
+
+### Key values for future steps
+- Groq call inventory now = 2: #1 resume structuring (resume_parser), #2 skill mining (skill_extractor)
+- Phase 7.3 job pipeline MUST import normalize_skills from app.services.skill_extractor (one normalizer)
+- resume.skills is canonical, deduped, taxonomy-aligned — ready as the Phase 8 matcher's skill-overlap input
+
+---

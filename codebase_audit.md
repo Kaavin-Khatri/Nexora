@@ -18,7 +18,7 @@ history lives in memory.md. Never store secret values here.
 ## Services
 - Supabase (Postgres + pgvector + Auth + Storage): project ref `vduadmxexdgkhmkxloyd`, region ap-south-1 (Mumbai), dashboard https://supabase.com/dashboard/project/vduadmxexdgkhmkxloyd — pgvector enabled
 - Supabase Auth: email/password provider, role captured at signup in user_metadata.role; **Confirm email OFF for dev (LAUNCH BLOCKER — re-enable in 15.1)**; web uses @supabase/ssr cookie-based sessions
-- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL. ALL Groq calls go through app/services/llm_client.py (the single gateway — no other file imports groq). Call inventory: #1 resume structuring.
+- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL. ALL Groq calls go through app/services/llm_client.py (the single gateway — no other file imports groq). Call inventory: #1 resume structuring (resume_parser), #2 skill mining (skill_extractor).
 - Supabase Storage: private bucket `resumes` — all access server-mediated via the service-role key (app/core/storage.py); files at {user_id}/{uuid}.{ext}; no public policies
 - Vercel: account ready, hosts apps/web (deploy in Phase 14.2)
 - Render: account ready, hosts apps/api (deploy in Phase 14.1)
@@ -200,6 +200,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 ## Known Issues
 - Resume parse pipeline (app/workers/tasks.py → services/): download → extract_text (pdfplumber/python-docx, whitespace-normalized, <200 chars → friendly scanned-PDF ParseError) → structure_resume (Groq via llm_client, blank-first) → score_resume (deterministic ATS) → persist raw_text + parsed_json + skills + ats_score + ats_breakdown, status=parsed. Any failure → status=failed + human-readable error_message. BLANK-FIRST enforced at BOTH the prompt layer and the all-optional pydantic schema.
 - ATS SCORER (app/services/ats_scorer.py): DETERMINISTIC + explainable, NO LLM (rules-not-vibes). Pure fn score_resume(parsed, raw_text) → total (0–100) + per-check breakdown; total = sum of rounded parts. Weights: contact 15 · sections 20 · quantified-bullets 20 · skills-band(8–20) 15 · length-band(300–900w) 10 · extraction-formatting 10 · action-verbs 10. Determinism pinned by tests/test_ats_scorer.py (golden totals). ats_breakdown JSONB = {total, checks:[{name,score,max,detail}]}.
+- SKILL EXTRACTION + NORMALIZATION (app/services/skill_extractor.py): resume.skills = normalize_skills(union of parsed.skills + Groq-mined bullet skills). normalize_skills(db, names) is the SINGLE normalizer shared by resume AND job pipelines (Phase 7.3 reuses it) — trim → ALIASES map → case-insensitive taxonomy match → unmatched INSERT flagged=uncategorized. ALIASES dict is the one place aliases grow (case variants need no entry).
 - Resume parsing uses FastAPI in-process BackgroundTasks — dies with the process, so a resume can be left stuck at 'parsing'. Acceptable at this scale; UI 30s poll-timeout + Retry covers it. Upgrade path: arq + Redis.
 - **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1
 - Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)
