@@ -135,6 +135,9 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | GET | /candidates/me | bearer + candidate | profile (full_name, headline, location, years_experience, desired_job_type, open_to_remote) |
 | GET | /candidates/me/overview | bearer + candidate | ONE-round-trip dashboard feed: profile + resume_status + ats_score + improvements (3 lowest imperfect checks, verbatim) + skills + completeness booleans. Future cards extend this — never new calls. |
 | PATCH | /candidates/me | bearer + candidate | partial update; extra="forbid" + ranges → 422; returns updated profile |
+| POST | /companies | bearer + recruiter | 201 creates company + links caller (recruiter_profiles); 409 if already linked |
+| GET | /companies/me | bearer + recruiter | caller's company; 404 = not onboarded yet (drives the onboarding redirect) |
+| PATCH | /companies/me | bearer + recruiter | partial update (name/website/size/about), extra=forbid |
 | POST | /resumes | bearer + candidate | multipart; .pdf/.docx ext+content-type, ≤5MB → 415/413; uploads to bucket, inserts row, kicks off parse; returns {id,status} |
 | GET | /resumes/latest | bearer + candidate | candidate's newest resume or null |
 | GET | /resumes/{id} | bearer + candidate | owner-only; 404 (not 403) for non-owner; includes parsed_json |
@@ -155,6 +158,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - apps/web/app/candidate/profile/ — page.tsx (server fetch) + profile-form.tsx (rhf + zod client form, /candidates/me)
 - apps/web/app/candidate/resume/ — page.tsx (server: GET /resumes/latest), resume-upload.tsx (state machine: dropzone → XHR-progress upload → processing/poll → parsed → renders review; failed/Retry; 30s poll timeout), resume-review.tsx (sectioned cards: Contact, Skills chip editor, Experience timeline, Education, Certifications — honest empty text per section; Re-parse + Re-upload). v1 editing = skills only.
 - apps/web/app/candidate/dashboard/ — page.tsx (server, ONE overview call), dashboard-cards.tsx (ScoreCard: big mono score + top-3 improvement lines verbatim from breakdown · SkillsCard: chips + edit link · CompletenessCard: checklist, unmet items link to fixes · NewAccountFunnel: EmptyState → profile + upload), loading.tsx (SkeletonCards mirroring the grid, no layout shift).
+- apps/web/app/recruiter/ — onboarding/page.tsx (standalone forced-once company form) + (shell)/ route group: layout.tsx (company gate → AppShell), dashboard/, company/ (detail + edit). components/company-form.tsx = one rhf+zod form with create|edit modes; lib/company.ts = zod schema mirror.
 - apps/web/components/ui/* — 18 shadcn primitives (see Stack); Field family is the form pattern
 - apps/web/components/layout/ — the app shell (all role-agnostic, driven by `role` prop + NAV):
   - sidebar.tsx: Logo, NavLinks (active = aria-current + sidebar-accent, prefix-matched), Sidebar (desktop aside, hidden < lg)
@@ -181,6 +185,8 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
   RULE: no hardcoded colors in components, ever — tokens only. Nexora "accent"=shadcn "primary"; shadcn --accent stays the neutral hover surface.
   RULE: status→color lives ONLY in components/ui-patterns/status-badge.tsx (applied neutral · screening warning · shortlisted accent-2 · interview accent · rejected danger · hired success · open success · closed muted · uploaded neutral · parsing warning · parsed success · failed danger)
 - TYPE SCALE: Sora headings 36 bold / 30 / 24 / 20 semibold (h1–h4 default to font-heading); Inter body 16 (lh 1.5) + 14 muted secondary; JetBrains Mono for all scores/data with tabular-nums
+- V1: ONE recruiter = ONE company — the recruiter_profiles row is the link and its existence means "onboarded" (GET /companies/me 404 = needs onboarding). Multi-recruiter teams DEFERRED: no invites/roles/membership tables until a real need exists.
+- Recruiter onboarding gate lives in app/recruiter/(shell)/layout.tsx (route group, URLs unchanged); /recruiter/onboarding sits outside the group (no loop) and bounces onboarded users back to the dashboard.
 - Supabase Auth replaces the earlier Auth.js plan: DB + storage + auth in one free service, zero password custody in Nexora code, JWT independently verifiable in FastAPI (3.2)
 - Dual-path JWT verification (HS256 secret OR JWKS) so the code works on both Supabase project generations; this project is JWKS/ES256
 - 30s JWT leeway: local clock skew vs Supabase made fresh tokens fail iat validation (caught by QA, not theory)

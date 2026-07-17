@@ -603,3 +603,27 @@ appends here + updates the audit after finishing. Never store secret values here
 - Components: dashboard-cards.tsx exports Overview type, ScoreCard, SkillsCard, CompletenessCard, NewAccountFunnel
 
 ---
+
+## Step 7.1 — Company & Recruiter Onboarding
+**Timestamp:** 2026-07-12T21:30:00Z
+**Status:** COMPLETE
+
+### What was done
+- API app/routers/companies.py (+ schemas/company.py): POST /companies (201; creates company + links caller via recruiter_profiles row with full_name from profile; 409 if already linked), GET /companies/me (404 = no company yet — the onboarding trigger), PATCH /companies/me (partial, extra=forbid). All require_role("recruiter").
+- Web restructure: recruiter pages moved into app/recruiter/(shell)/ route group (URLs unchanged). (shell)/layout.tsx now GETs /companies/me and redirects to /recruiter/onboarding when absent. Onboarding lives OUTSIDE the group (no sidebar, no redirect loop) and itself redirects onboarded recruiters to the dashboard — forced exactly once, both directions.
+- components/company-form.tsx: one reusable rhf+zod form, mode="create" (POST → dashboard) | mode="edit" (PATCH → toast + reset). lib/company.ts zod schema mirrors API. shadcn textarea added.
+- (shell)/company/page.tsx: detail + edit using the same form.
+- QA all green: fresh recruiter (new test user qa.recruiter3.71) → dashboard AND company both 307 → onboarding, onboarding renders form; onboarded recruiter → dashboard 200, onboarding 307 → dashboard, company page renders QA Talent Co + edited about; API: 404-before, create-201, second POST 409, PATCH persists, candidate 403 on all three endpoints. (QA hiccup: a stale uvicorn from 6.4 was squatting port 8000 serving pre-companies routes — killed, re-ran clean.)
+- Commit: feat(recruiter): company onboarding
+
+### Decisions
+- V1 CONSTRAINT: one recruiter = one company (the recruiter_profiles row IS the link; its existence = onboarded). Teams/multi-recruiter-per-company explicitly DEFERRED — no invites, roles, or membership tables until a real need exists.
+- Onboarding gate lives in the (shell) LAYOUT (route group keeps URLs identical) — pages inside the shell can assume a company exists
+- GET /companies/me 404 doubles as the onboarding signal — no separate "has_company" flag
+
+### Key values for future steps
+- 7.2 job CRUD: recruiter's company = recruiter_profiles.company_id (guaranteed by the shell gate + 409 invariant)
+- Test recruiters: qa.recruiter.33 (company: QA Talent Co) · qa.recruiter3.71 (fresh, NO company — keep for onboarding regression)
+- Seeded recruiters (Ananya/Rohan) already have companies via seed — consistent with the one-recruiter-one-company invariant
+
+---

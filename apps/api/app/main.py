@@ -9,7 +9,7 @@ from app.core.config import settings
 from app.core.security import CurrentUser, get_current_user
 from app.db.models import Profile
 from app.db.session import get_db
-from app.routers import candidates, resumes
+from app.routers import candidates, companies, resumes
 from app.services.embedding_service import model_loaded, warmup
 
 
@@ -31,6 +31,7 @@ app.add_middleware(
 )
 
 app.include_router(candidates.router)
+app.include_router(companies.router)
 app.include_router(resumes.router)
 
 
