@@ -138,6 +138,12 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | POST | /companies | bearer + recruiter | 201 creates company + links caller (recruiter_profiles); 409 if already linked |
 | GET | /companies/me | bearer + recruiter | caller's company; 404 = not onboarded yet (drives the onboarding redirect) |
 | PATCH | /companies/me | bearer + recruiter | partial update (name/website/size/about), extra=forbid |
+| POST | /jobs | bearer + recruiter | 201; company from recruiter_profiles; required_skills normalized; returns job+company |
+| GET | /jobs/mine | bearer + recruiter | caller's jobs, all statuses (order created_at desc, id desc) |
+| GET | /jobs | PUBLIC | open jobs only; filters location/job_type/remote/max_experience/q + limit/offset; {items,total,limit,offset}; stable order (no dup across pages) |
+| GET | /jobs/{id} | PUBLIC | open jobs only (closed → 404); includes company |
+| PATCH | /jobs/{id} | bearer + recruiter owner | partial update incl. status open/closed; non-owner → 404; re-normalizes skills |
+| GET | /skills | bearer (any role) | taxonomy autocomplete `?q=&limit=`; 401 anon |
 | POST | /resumes | bearer + candidate | multipart; .pdf/.docx ext+content-type, ≤5MB → 415/413; uploads to bucket, inserts row, kicks off parse; returns {id,status} |
 | GET | /resumes/latest | bearer + candidate | candidate's newest resume or null |
 | GET | /resumes/{id} | bearer + candidate | owner-only; 404 (not 403) for non-owner; includes parsed_json |
@@ -158,7 +164,8 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - apps/web/app/candidate/profile/ — page.tsx (server fetch) + profile-form.tsx (rhf + zod client form, /candidates/me)
 - apps/web/app/candidate/resume/ — page.tsx (server: GET /resumes/latest), resume-upload.tsx (state machine: dropzone → XHR-progress upload → processing/poll → parsed → renders review; failed/Retry; 30s poll timeout), resume-review.tsx (sectioned cards: Contact, Skills chip editor, Experience timeline, Education, Certifications — honest empty text per section; Re-parse + Re-upload). v1 editing = skills only.
 - apps/web/app/candidate/dashboard/ — page.tsx (server, ONE overview call), dashboard-cards.tsx (ScoreCard: big mono score + top-3 improvement lines verbatim from breakdown · SkillsCard: chips + edit link · CompletenessCard: checklist, unmet items link to fixes · NewAccountFunnel: EmptyState → profile + upload), loading.tsx (SkeletonCards mirroring the grid, no layout shift).
-- apps/web/app/recruiter/ — onboarding/page.tsx (standalone forced-once company form) + (shell)/ route group: layout.tsx (company gate → AppShell), dashboard/, company/ (detail + edit). components/company-form.tsx = one rhf+zod form with create|edit modes; lib/company.ts = zod schema mirror.
+- apps/web/app/recruiter/ — onboarding/page.tsx (standalone forced-once company form) + (shell)/ route group: layout.tsx (company gate → AppShell), dashboard/, company/ (detail + edit), jobs/ (DataTable: title/status/posted/applicants-placeholder/edit), jobs/new, jobs/[id]/edit (loads via /jobs/mine so closed stays editable). components/company-form.tsx + job-form.tsx (rhf+zod, create|edit) + skills-tag-input.tsx (taxonomy autocomplete + free tags). lib/company.ts + lib/jobs.ts = zod schema mirrors.
+- apps/web/app/candidate/jobs/ — page.tsx (JobCard grid + prev/next pagination; PUBLIC /jobs feed), filter-bar.tsx (URL-param filters: location/job_type/remote), [id]/page.tsx (detail: description, required skills, company card, disabled Apply placeholder → Phase 9).
 - apps/web/components/ui/* — 18 shadcn primitives (see Stack); Field family is the form pattern
 - apps/web/components/layout/ — the app shell (all role-agnostic, driven by `role` prop + NAV):
   - sidebar.tsx: Logo, NavLinks (active = aria-current + sidebar-accent, prefix-matched), Sidebar (desktop aside, hidden < lg)

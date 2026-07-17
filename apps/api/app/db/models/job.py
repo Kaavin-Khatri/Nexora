@@ -6,9 +6,10 @@ from typing import Any
 import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.db.models.company import Company
 from app.db.models.enums import job_status, job_type
 
 
@@ -48,3 +49,6 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
     )
+
+    # joined-load so job listings can serialize company details in one query
+    company: Mapped[Company] = relationship(Company, lazy="joined")

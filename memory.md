@@ -627,3 +627,29 @@ appends here + updates the audit after finishing. Never store secret values here
 - Seeded recruiters (Ananya/Rohan) already have companies via seed — consistent with the one-recruiter-one-company invariant
 
 ---
+
+## Step 7.2 — Job CRUD, Forms & Browse
+**Timestamp:** 2026-07-13T00:20:00Z
+**Status:** COMPLETE
+
+### What was done
+- API app/routers/jobs.py (+ schemas/job.py: JobOut / JobDetailOut(+company) / JobListOut / JobCreate / JobUpdate, extra=forbid): POST /jobs (201; company from recruiter_profiles; required_skills through the SHARED normalize_skills), GET /jobs/mine (own, all statuses), PUBLIC GET /jobs (open only; filters location ilike, job_type, remote, max_experience (≤ or null), q title ilike; limit/offset; stable order created_at desc, id desc; returns {items,total,limit,offset}), GET /jobs/{id} (public, open only — closed 404s even for owner here; owners manage via /mine), PATCH /jobs/{id} (owner-only 404, incl. status open|closed, re-normalizes skills).
+- GET /skills?q=&limit= (app/routers/skills.py) — taxonomy autocomplete, any authenticated user, 401 anon.
+- Job model: company relationship (lazy="joined") for one-query company serialization.
+- Web: lib/jobs.ts (zod mirror + JOB_TYPE_LABELS + Job/JobList types); components/skills-tag-input.tsx (debounced taxonomy autocomplete + free tags; suggestions dropdown; no-useEffect pattern per react-hooks lint); components/job-form.tsx (create|edit modes, status select in edit); recruiter (shell)/jobs: page (DataTable: title/status/posted/applicants-placeholder/edit), new, [id]/edit (loads via /jobs/mine so closed jobs stay editable); candidate jobs: filter-bar.tsx (URL-param filters, reset offset on change), page.tsx (JobCard grid + prev/next pagination), [id]/page.tsx (description, skills, company card, disabled Apply placeholder for Phase 9).
+- QA all green (live): create with ["postgres","Python","Zx Testing Framework"] → stored ["PostgreSQL","Python","Zx Testing Framework"] + new skill in taxonomy flagged uncategorized; edit persists; open job in browse → close → leaves browse + public detail 404 + owner still sees in /mine; non-owner PATCH on seeded job → 404; combined filters (Bengaluru+full_time+remote=false) API total == direct SQL count; pagination limit3×2 pages zero overlap; /skills?q=fast → ["FastAPI"], anon 401; both role UIs render (recruiter table w/ closed job + new form; candidate grid, filters exclude correctly, detail page complete).
+- Commit: feat(jobs): crud + forms + browse
+
+### Decisions
+- JOB FORM FIELDS LOCKED: title, location, remote, job_type, min_experience, required_skills (tag input), description (min 50 chars — the AI mines it). Structured-first: filterables are FIELDS, prose stays for the 7.3 pipeline.
+- PUBLIC FILTER PARAMS (locked): location, job_type, remote, max_experience, q, limit, offset
+- Public GET /jobs + /jobs/{id} are UNAUTHENTICATED (browse before signup is fine); mutation + /mine are recruiter-only; closed jobs are invisible publicly (owner manages via /mine)
+- Edit page loads from /jobs/mine, not the public detail — closed jobs must stay editable without leaking existence publicly
+- Skills tag input accepts NEW tags — API normalizes + inserts flagged (taxonomy grows from real usage)
+
+### Key values for future steps
+- Skills autocomplete: GET /skills?q= (authed)
+- 7.3 ingestion: jobs currently have parsed_json/embedding NULL (incl. the new QA job) — pipeline + seed backfill next; reuse normalize_skills + mirror build_resume_embed_text
+- Phase 9 hooks ready: Apply button placeholder on detail page, Applicants placeholder column in recruiter table
+
+---
