@@ -133,6 +133,7 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | GET | /me | bearer (any role) | full profile row (bootstraps it if missing) |
 | POST | /profiles/bootstrap | bearer (any role) | {"status","user_id","role"} — idempotent |
 | GET | /candidates/me | bearer + candidate | profile (full_name, headline, location, years_experience, desired_job_type, open_to_remote) |
+| GET | /candidates/me/overview | bearer + candidate | ONE-round-trip dashboard feed: profile + resume_status + ats_score + improvements (3 lowest imperfect checks, verbatim) + skills + completeness booleans. Future cards extend this — never new calls. |
 | PATCH | /candidates/me | bearer + candidate | partial update; extra="forbid" + ranges → 422; returns updated profile |
 | POST | /resumes | bearer + candidate | multipart; .pdf/.docx ext+content-type, ≤5MB → 415/413; uploads to bucket, inserts row, kicks off parse; returns {id,status} |
 | GET | /resumes/latest | bearer + candidate | candidate's newest resume or null |
@@ -153,6 +154,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - apps/web/app/candidate/dashboard + app/recruiter/dashboard — placeholder server components (name + role from session)
 - apps/web/app/candidate/profile/ — page.tsx (server fetch) + profile-form.tsx (rhf + zod client form, /candidates/me)
 - apps/web/app/candidate/resume/ — page.tsx (server: GET /resumes/latest), resume-upload.tsx (state machine: dropzone → XHR-progress upload → processing/poll → parsed → renders review; failed/Retry; 30s poll timeout), resume-review.tsx (sectioned cards: Contact, Skills chip editor, Experience timeline, Education, Certifications — honest empty text per section; Re-parse + Re-upload). v1 editing = skills only.
+- apps/web/app/candidate/dashboard/ — page.tsx (server, ONE overview call), dashboard-cards.tsx (ScoreCard: big mono score + top-3 improvement lines verbatim from breakdown · SkillsCard: chips + edit link · CompletenessCard: checklist, unmet items link to fixes · NewAccountFunnel: EmptyState → profile + upload), loading.tsx (SkeletonCards mirroring the grid, no layout shift).
 - apps/web/components/ui/* — 18 shadcn primitives (see Stack); Field family is the form pattern
 - apps/web/components/layout/ — the app shell (all role-agnostic, driven by `role` prop + NAV):
   - sidebar.tsx: Logo, NavLinks (active = aria-current + sidebar-accent, prefix-matched), Sidebar (desktop aside, hidden < lg)

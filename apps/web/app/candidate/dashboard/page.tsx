@@ -1,36 +1,56 @@
-// Placeholder content — real candidate dashboard arrives in a later phase.
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { api } from "@/lib/api-client";
 import { createClient } from "@/lib/supabase/server";
+import {
+  CompletenessCard,
+  NewAccountFunnel,
+  type Overview,
+  ScoreCard,
+  SkillsCard,
+} from "./dashboard-cards";
 
 export default async function CandidateDashboard() {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const claims = data?.claims;
-  const name = claims?.user_metadata?.full_name ?? claims?.email ?? "there";
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const name =
+    session?.user.user_metadata?.full_name ?? session?.user.email ?? "there";
+
+  // ONE round trip — every dashboard card reads from this payload.
+  const overview = await api<Overview>("/candidates/me/overview", {
+    headers: { Authorization: `Bearer ${session?.access_token}` },
+    cache: "no-store",
+  }).catch(() => null);
 
   return (
     <>
       <PageHeader title="Dashboard" description={`Welcome back, ${name}`} />
-      <Card className="max-w-xl">
-        <CardHeader>
-          <CardTitle>Get started</CardTitle>
-          <CardDescription>
-            Upload your resume to unlock ATS scoring and job matches built for
-            your skills.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Resume upload lands in the next phase — your dashboard will fill in as
-          features ship.
-        </CardContent>
-      </Card>
+
+      {!overview ? (
+        <p className="text-sm text-muted-foreground">
+          Couldn’t load your dashboard — is the API running? Refresh to retry.
+        </p>
+      ) : !overview.completeness.resume_uploaded ? (
+        <div className="max-w-2xl">
+          <NewAccountFunnel
+            profileComplete={overview.completeness.profile_complete}
+          />
+        </div>
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {overview.ats_score !== null && (
+            <ScoreCard
+              score={overview.ats_score}
+              improvements={overview.improvements}
+            />
+          )}
+          <div className="space-y-4">
+            <CompletenessCard completeness={overview.completeness} />
+            <SkillsCard skills={overview.skills} />
+          </div>
+        </div>
+      )}
     </>
   );
 }

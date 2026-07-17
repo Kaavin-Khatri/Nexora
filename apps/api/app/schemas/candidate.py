@@ -9,6 +9,10 @@ JobType = Literal["full_time", "part_time", "contract", "internship"]
 
 
 class CandidateProfileOut(BaseModel):
+    # from_attributes: validate straight from the SQLAlchemy Profile object
+    # (needed when nested inside CandidateOverview).
+    model_config = ConfigDict(from_attributes=True)
+
     full_name: str
     headline: str | None
     location: str | None
@@ -28,3 +32,28 @@ class CandidateProfileUpdate(BaseModel):
     years_experience: float | None = Field(default=None, ge=0, le=50)
     desired_job_type: JobType | None = None
     open_to_remote: bool | None = None
+
+
+class Improvement(BaseModel):
+    name: str
+    score: float
+    max: float
+    detail: str
+
+
+class Completeness(BaseModel):
+    profile_complete: bool  # hard-filter fields set (location, years, desired job type)
+    resume_uploaded: bool
+    resume_parsed: bool
+
+
+class CandidateOverview(BaseModel):
+    """Everything the dashboard needs in ONE round trip — future cards extend
+    this, never add new calls."""
+
+    profile: CandidateProfileOut
+    resume_status: str | None
+    ats_score: float | None
+    improvements: list[Improvement]  # the 3 lowest-scoring ATS checks
+    skills: list[str]
+    completeness: Completeness

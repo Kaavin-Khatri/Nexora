@@ -579,3 +579,27 @@ appends here + updates the audit after finishing. Never store secret values here
 - /health.model_loaded is the readiness signal for Phase 14
 
 ---
+
+## Step 6.4 — Candidate Dashboard v1
+**Timestamp:** 2026-07-12T20:40:00Z
+**Status:** COMPLETE
+
+### What was done
+- API: GET /candidates/me/overview — ONE round trip: {profile, resume_status, ats_score, improvements (3 lowest-ratio IMPERFECT checks straight from ats_breakdown — no invented advice), skills, completeness{profile_complete, resume_uploaded, resume_parsed}}. profile_complete = location + years_experience + desired_job_type set (the hard-filter fields).
+- Schemas: Improvement, Completeness, CandidateOverview in app/schemas/candidate.py. FIX: CandidateProfileOut needed from_attributes=True — FastAPI coerces bare response models from ORM objects, but NESTED models constructed manually don't (500 caught by QA).
+- Web app/candidate/dashboard/: dashboard-cards.tsx (Overview type + ScoreCard big mono score w/ top-3 actionable lines · SkillsCard chips + edit link · CompletenessCard checklist, unmet items link to their fix · NewAccountFunnel EmptyState pointing at profile + upload), page.tsx (server component, exactly one api() call), loading.tsx (SkeletonCards mirroring the loaded 2-col grid — no layout shift on swap).
+- Branching: no resume uploaded → funnel (with Fill profile CTA only if profile incomplete); else cards.
+- QA all green: complete account renders 71.60 + all 3 improvements verbatim (verified equal to ats_breakdown details in DB) + skills + checklist, no funnel; fresh account renders funnel + both CTAs and NO cards (early "leak" was a probe false-positive — funnel copy mentions "ATS score"); page.tsx contains exactly 1 await api(); loading.tsx mirrors layout.
+- Commit: feat(candidate): dashboard v1
+
+### Decisions
+- OVERVIEW ENDPOINT SHAPE (locked): future dashboard cards EXTEND CandidateOverview — never add new dashboard API calls. One round trip is the contract.
+- Improvements = 3 lowest score/max ratio checks where score < max, details passed through verbatim from the breakdown (explainability chain: scorer → breakdown → dashboard, unbroken)
+- No animation library for the score display — a clear big tabular-mono number beats a count-up dependency (ponytail)
+
+### Key values for future steps
+- GET /candidates/me/overview is THE dashboard feed; extend its schema for new cards (e.g. Phase 8 match counts)
+- Funnel logic: !resume_uploaded → NewAccountFunnel; completeness booleans drive the checklist
+- Components: dashboard-cards.tsx exports Overview type, ScoreCard, SkillsCard, CompletenessCard, NewAccountFunnel
+
+---
