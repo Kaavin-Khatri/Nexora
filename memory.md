@@ -653,3 +653,33 @@ appends here + updates the audit after finishing. Never store secret values here
 - Phase 9 hooks ready: Apply button placeholder on detail page, Applicants placeholder column in recruiter table
 
 ---
+
+## Step 7.3 — Job Ingestion: Structure + Embed (+ seed backfill)
+**Timestamp:** 2026-07-13T01:30:00Z
+**Status:** COMPLETE
+
+### What was done
+- app/schemas/job_parsed.py: ParsedJob{responsibilities[], extracted_skills[], seniority_hint} (blank-first, extra=ignore) → jobs.parsed_json
+- app/services/job_ingest.py: structure_job (Groq call #3, via llm_client) + ingest_job(job_id) (structure → merge skills → embed; own session; best-effort — failure logs + leaves embedding NULL for backfill retry; jobs have NO parse-status on purpose, the posting is already live) + reembed_job(job_id) (local re-embed, NO Groq)
+- embedding_service.py: build_job_embed_text added DIRECTLY BELOW build_resume_embed_text (side by side by design)
+- jobs router: create → BackgroundTasks ingest_job; PATCH → VALUE-level change detection (form sends all fields): description|required_skills changed → full ingest (Groq); only title|min_experience changed → reembed_job (no Groq); nothing changed → no task at all
+- scripts/backfill_jobs.py: ingests every job with NULL embedding; idempotent
+- QA all green (live Groq + DB): new job embedded in ~4s, vector_dims=384, parsed_json{6 responsibilities, seniority=senior}; merged skills ['Python','Communication','Kafka','PostgreSQL'] — recruiter-entered FIRST + VERBATIM, extracted appended; description edit → parsed_json hash AND embedding hash both changed; title-only edit → parsed_json hash UNCHANGED (no Groq) + embedding hash changed (refreshed); identical-value PATCH → no task; backfill run1 ingested all 7 NULL jobs (6 seeds + QA job), run2 "0 needing"; ALL 8 jobs now 384-dim.
+- SANITY: cosine ranking of backend/fintech test resume vs jobs: Backend Engineer 0.088 (closest) … Product Manager 0.361 (farthest) — the shared space is semantically meaningful.
+- Commit: feat(ai): job structuring + embedding pipeline
+
+### Decisions
+- MERGE RULE: recruiter-entered skills are AUTHORITATIVE — never dropped, kept verbatim (canonical from CRUD-time normalization), listed FIRST; Groq-extracted skills append after, deduped case-insensitively, normalized via the shared normalize_skills.
+- EMBED-TEXT TEMPLATES (must stay MIRRORED — recorded side by side, change both or neither):
+    resume: "{summary or name}. {years} years experience. Skills: {skills csv}. {up to 5 strongest bullets}"
+    job:    "{title}. Requires {min_experience}+ years. Skills: {skills csv}. {up to 5 responsibilities}"
+- Title/min_experience edits re-embed WITHOUT Groq (they're in the embed text but not structuring inputs) — refinement over the spec's "don't re-run Groq on title edits", which would otherwise leave a stale vector
+- Groq call inventory: 3 — #1 resume structuring, #2 skill mining, #3 job structuring (all via llm_client)
+
+### Key values for future steps
+- SEED-EMBEDDING DEBT PAID: all jobs have parsed_json + 384-dim embeddings; resumes and jobs share one vector space
+- Phase 8 matcher inputs ready: resumes.embedding + skills, jobs.embedding + required_skills, hard-filter fields both sides
+- jobs.parsed_json shape = ParsedJob; seniority_hint available as a future signal
+- Backfill: cd apps/api && .venv/Scripts/python.exe scripts/backfill_jobs.py
+
+---

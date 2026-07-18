@@ -18,7 +18,7 @@ history lives in memory.md. Never store secret values here.
 ## Services
 - Supabase (Postgres + pgvector + Auth + Storage): project ref `vduadmxexdgkhmkxloyd`, region ap-south-1 (Mumbai), dashboard https://supabase.com/dashboard/project/vduadmxexdgkhmkxloyd — pgvector enabled
 - Supabase Auth: email/password provider, role captured at signup in user_metadata.role; **Confirm email OFF for dev (LAUNCH BLOCKER — re-enable in 15.1)**; web uses @supabase/ssr cookie-based sessions
-- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL. ALL Groq calls go through app/services/llm_client.py (the single gateway — no other file imports groq). Call inventory: #1 resume structuring (resume_parser), #2 skill mining (skill_extractor).
+- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL. ALL Groq calls go through app/services/llm_client.py (the single gateway — no other file imports groq). Call inventory: #1 resume structuring (resume_parser), #2 skill mining (skill_extractor), #3 job structuring (job_ingest).
 - Supabase Storage: private bucket `resumes` — all access server-mediated via the service-role key (app/core/storage.py); files at {user_id}/{uuid}.{ext}; no public policies
 - Vercel: account ready, hosts apps/web (deploy in Phase 14.2)
 - Render: account ready, hosts apps/api (deploy in Phase 14.1)
@@ -124,6 +124,8 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 
 **Indexes** (beyond PKs/uniques): ix_resumes_embedding_hnsw + ix_jobs_embedding_hnsw (HNSW, vector_cosine_ops) · ix_resumes_skills_gin + ix_jobs_required_skills_gin (GIN on text[]) · ix_jobs_location + ix_jobs_job_type (btree)
 
+**Vector space status**: ALL jobs have parsed_json + 384-dim embeddings (Phase 2 seed debt PAID in 7.3, backfill verified idempotent); resumes embed on every parse. Sanity-checked: backend test resume ranks Backend Engineer closest (cos dist 0.088), Product Manager farthest (0.361).
+
 ## API Endpoints
 
 | Method | Path | Auth | Returns |
@@ -217,7 +219,11 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - Resume parse pipeline (app/workers/tasks.py → services/): download → extract_text (pdfplumber/python-docx, whitespace-normalized, <200 chars → friendly scanned-PDF ParseError) → structure_resume (Groq via llm_client, blank-first) → score_resume (deterministic ATS) → persist raw_text + parsed_json + skills + ats_score + ats_breakdown, status=parsed. Any failure → status=failed + human-readable error_message. BLANK-FIRST enforced at BOTH the prompt layer and the all-optional pydantic schema.
 - ATS SCORER (app/services/ats_scorer.py): DETERMINISTIC + explainable, NO LLM (rules-not-vibes). Pure fn score_resume(parsed, raw_text) → total (0–100) + per-check breakdown; total = sum of rounded parts. Weights: contact 15 · sections 20 · quantified-bullets 20 · skills-band(8–20) 15 · length-band(300–900w) 10 · extraction-formatting 10 · action-verbs 10. Determinism pinned by tests/test_ats_scorer.py (golden totals). ats_breakdown JSONB = {total, checks:[{name,score,max,detail}]}.
 - SKILL EXTRACTION + NORMALIZATION (app/services/skill_extractor.py): resume.skills = normalize_skills(union of parsed.skills + Groq-mined bullet skills). normalize_skills(db, names) is the SINGLE normalizer shared by resume AND job pipelines (Phase 7.3 reuses it) — trim → ALIASES map → case-insensitive taxonomy match → unmatched INSERT flagged=uncategorized. ALIASES dict is the one place aliases grow (case variants need no entry).
-- EMBEDDINGS (app/services/embedding_service.py): BAAI/bge-small-en-v1.5, 384-dim, ONNX via fastembed (no PyTorch, ~220MB warm RSS < 512MB). Lazy singleton warmed at FastAPI startup (lifespan); /health.model_loaded reports readiness. build_resume_embed_text template (MUST be mirrored by the job side in 7.3): "{summary or name}. {years} years experience. Skills: {csv}. {up to 5 quantified-first bullets}". Persisted to resumes.embedding on every parse; scripts/backfill_embeddings.py backfills NULLs idempotently.
+- EMBEDDINGS (app/services/embedding_service.py): BAAI/bge-small-en-v1.5, 384-dim, ONNX via fastembed (no PyTorch, ~220MB warm RSS < 512MB). Lazy singleton warmed at FastAPI startup (lifespan); /health.model_loaded reports readiness. SYMMETRIC embed-text builders, side by side in the file — change both or neither:
+  - resume: "{summary or name}. {years} years experience. Skills: {csv}. {up to 5 quantified-first bullets}"
+  - job:    "{title}. Requires {min_experience}+ years. Skills: {csv}. {up to 5 responsibilities}"
+  Persisted to resumes.embedding / jobs.embedding; scripts/backfill_embeddings.py + scripts/backfill_jobs.py fill NULLs idempotently.
+- JOB INGESTION (app/services/job_ingest.py): on create → ingest_job (Groq-structure description → ParsedJob{responsibilities, extracted_skills, seniority_hint} → jobs.parsed_json; MERGE: recruiter-entered skills authoritative/verbatim/first + normalized extracted appended; embed). On PATCH: value-level change detection — description|skills → full ingest; title|min_experience only → reembed_job (no Groq); no change → no task. Best-effort: failure leaves embedding NULL for backfill.
 - Resume parsing uses FastAPI in-process BackgroundTasks — dies with the process, so a resume can be left stuck at 'parsing'. Acceptable at this scale; UI 30s poll-timeout + Retry covers it. Upgrade path: arq + Redis.
 - **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1
 - Supabase free projects pause after ~1 week idle — first request wakes them (slow first hit); pool_pre_ping mitigates, local compose fallback exists (docker-compose.yml, :5433)

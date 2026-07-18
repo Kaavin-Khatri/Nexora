@@ -55,3 +55,23 @@ def build_resume_embed_text(parsed: ParsedResume, skills: list[str]) -> str:
     return (
         f"{lead}. {years} years experience. Skills: {', '.join(skills)}. {' '.join(bullets)}"
     ).strip()
+
+
+def build_job_embed_text(
+    title: str,
+    min_experience: float | None,
+    skills: list[str],
+    responsibilities: list[str],
+) -> str:
+    """Deterministic JOB embed text — MIRRORS the resume template above in
+    structure so both vectors share one semantic space. TEMPLATE (VERBATIM):
+
+        {title}. Requires {min_experience}+ years. Skills: {skills csv}. {up to 5 responsibilities}
+
+    Keep these two builders side by side; if one changes shape, change both.
+    """
+    years = min_experience or 0
+    return (
+        f"{title}. Requires {years}+ years. "
+        f"Skills: {', '.join(skills)}. {' '.join(responsibilities[:5])}"
+    ).strip()

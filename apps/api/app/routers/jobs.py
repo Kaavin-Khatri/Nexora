@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -8,6 +8,7 @@ from app.core.security import CurrentUser, require_role
 from app.db.models import Job, RecruiterProfile
 from app.db.session import get_db
 from app.schemas.job import JobCreate, JobDetailOut, JobListOut, JobOut, JobUpdate
+from app.services.job_ingest import ingest_job, reembed_job
 from app.services.skill_extractor import normalize_skills
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -23,6 +24,7 @@ def _my_company_id(db: Session, user_id: uuid.UUID) -> uuid.UUID:
 @router.post("", response_model=JobDetailOut, status_code=201)
 def create_job(
     payload: JobCreate,
+    background_tasks: BackgroundTasks,
     user: CurrentUser = Depends(require_role("recruiter")),
     db: Session = Depends(get_db),
 ):
@@ -34,6 +36,7 @@ def create_job(
     db.add(job)
     db.commit()
     db.refresh(job)
+    background_tasks.add_task(ingest_job, job.id)
     return job
 
 
@@ -111,6 +114,7 @@ def get_job(
 def update_job(
     job_id: uuid.UUID,
     payload: JobUpdate,
+    background_tasks: BackgroundTasks,
     user: CurrentUser = Depends(require_role("recruiter")),
     db: Session = Depends(get_db),
 ):
@@ -121,8 +125,25 @@ def update_job(
     data = payload.model_dump(exclude_unset=True)
     if "required_skills" in data and data["required_skills"] is not None:
         data["required_skills"] = normalize_skills(db, data["required_skills"]) or None
+
+    # Value-level change detection (the form PATCHes every field, changed or not).
+    def _neq(field: str, new) -> bool:
+        old = getattr(job, field)
+        if field == "min_experience" and old is not None and new is not None:
+            return float(old) != float(new)
+        return old != new
+
+    changed = {k for k, v in data.items() if _neq(k, v)}
     for field, value in data.items():
         setattr(job, field, value)
     db.commit()
     db.refresh(job)
+
+    # description/skills changed → full re-ingest (Groq). Only title/min_exp
+    # changed → local re-embed, NO Groq (they're in the embed text but not
+    # inputs to structuring).
+    if changed & {"description", "required_skills"}:
+        background_tasks.add_task(ingest_job, job.id)
+    elif changed & {"title", "min_experience"}:
+        background_tasks.add_task(reembed_job, job.id)
     return job
