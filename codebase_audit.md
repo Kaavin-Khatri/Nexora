@@ -146,6 +146,8 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | GET | /jobs/{id} | PUBLIC | open jobs only (closed → 404); includes company |
 | PATCH | /jobs/{id} | bearer + recruiter owner | partial update incl. status open/closed; non-owner → 404; re-normalizes skills |
 | GET | /skills | bearer (any role) | taxonomy autocomplete `?q=&limit=`; 401 anon |
+| GET | /jobs/recommended | bearer + candidate | ranked open jobs for the candidate; honest `missing:["profile","resume"]` when incomplete. Registered BEFORE /jobs/{job_id}. |
+| GET | /jobs/{id}/matches | bearer + recruiter owner | ranked candidates for the job (404 non-owner; [] while ingesting) |
 | POST | /resumes | bearer + candidate | multipart; .pdf/.docx ext+content-type, ≤5MB → 415/413; uploads to bucket, inserts row, kicks off parse; returns {id,status} |
 | GET | /resumes/latest | bearer + candidate | candidate's newest resume or null |
 | GET | /resumes/{id} | bearer + candidate | owner-only; 404 (not 403) for non-owner; includes parsed_json |
@@ -223,6 +225,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
   - resume: "{summary or name}. {years} years experience. Skills: {csv}. {up to 5 quantified-first bullets}"
   - job:    "{title}. Requires {min_experience}+ years. Skills: {csv}. {up to 5 responsibilities}"
   Persisted to resumes.embedding / jobs.embedding; scripts/backfill_embeddings.py + scripts/backfill_jobs.py fill NULLs idempotently.
+- MATCHER v1 (app/services/matching_engine.py): TWO-SIDED SYMMETRIC, FILTERS-BEFORE-VECTORS — hard filters in SQL (experience coalesce-≥, job-type strict-when-both-stated / relaxed-when-either-NULL, location remote-OR-open-OR-ilike), then pgvector ANN cosine on survivors only. Score v1 = 1 - cosine_distance, no weights. RETRIEVAL_LIMIT 50 = the 8.2 rerank pool. Latest-parsed-resume via JOIN LATERAL. Gotcha: bind params used only in IS NULL checks need CAST(:p AS text) (psycopg AmbiguousParameter). CandidateOverview.recommended = top 3 (one-round-trip contract kept).
 - JOB INGESTION (app/services/job_ingest.py): on create → ingest_job (Groq-structure description → ParsedJob{responsibilities, extracted_skills, seniority_hint} → jobs.parsed_json; MERGE: recruiter-entered skills authoritative/verbatim/first + normalized extracted appended; embed). On PATCH: value-level change detection — description|skills → full ingest; title|min_experience only → reembed_job (no Groq); no change → no task. Best-effort: failure leaves embedding NULL for backfill.
 - Resume parsing uses FastAPI in-process BackgroundTasks — dies with the process, so a resume can be left stuck at 'parsing'. Acceptable at this scale; UI 30s poll-timeout + Retry covers it. Upgrade path: arq + Redis.
 - **LAUNCH BLOCKER**: Supabase email confirmation is OFF for dev speed — re-enable in Phase 15.1

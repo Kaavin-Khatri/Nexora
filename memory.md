@@ -683,3 +683,40 @@ appends here + updates the audit after finishing. Never store secret values here
 - Backfill: cd apps/api && .venv/Scripts/python.exe scripts/backfill_jobs.py
 
 ---
+
+## Step 8.1 — v1 Matcher: Hard Filters + ANN
+**Timestamp:** 2026-07-13T03:10:00Z
+**Status:** COMPLETE
+
+### What was done
+- app/services/matching_engine.py: candidates_for_job + jobs_for_candidate — one raw SQL each, filters FIRST then ANN cosine on survivors. RETRIEVAL_LIMIT=50. v1 score = 1 - cosine_distance. FIX found by QA: params used only in IS NULL checks need CAST(:p AS text) or psycopg raises AmbiguousParameter.
+- THE candidates_for_job QUERY (VERBATIM):
+    SELECT p.user_id, p.full_name, p.years_experience, r.id AS resume_id, r.skills,
+           1 - (r.embedding <=> CAST(:emb AS vector)) AS similarity
+    FROM profiles p
+    JOIN LATERAL (SELECT r2.id, r2.skills, r2.embedding FROM resumes r2
+                  WHERE r2.candidate_id = p.user_id AND r2.status='parsed' AND r2.embedding IS NOT NULL
+                  ORDER BY r2.created_at DESC LIMIT 1) r ON true
+    WHERE p.role='candidate'
+      AND coalesce(p.years_experience,0) >= coalesce(:min_experience,0)
+      AND (CAST(:job_type AS text) IS NULL OR p.desired_job_type IS NULL OR p.desired_job_type::text = :job_type)
+      AND (:remote OR p.open_to_remote OR (CAST(:loc AS text) IS NOT NULL AND p.location ILIKE :loc))
+    ORDER BY r.embedding <=> CAST(:emb AS vector) LIMIT :lim
+  (jobs_for_candidate is the exact mirror over open embedded jobs, + company name.)
+- API: GET /jobs/recommended (candidate; honest missing:["profile","resume"] instead of silent empty; registered BEFORE /jobs/{job_id} — "recommended" must never parse as UUID), GET /jobs/{id}/matches (recruiter owner-only 404; [] while still ingesting). CandidateOverview extended with recommended (top 3) — dashboard keeps the one-round-trip contract.
+- Web: RecommendedCard + MatchBadge on dashboard; /candidate/jobs grew All|Recommended tabs (link-tabs, ?tab=), JobCard optional matchPct badge, honest EmptyState per missing item with CTAs; recruiter jobs table grew a Matches link → /recruiter/jobs/[id]/matches (DataTable: candidate, match %, experience, skills preview).
+- QA all green: AI-skilled Priya (new test candidate w/ AI resume through the real pipeline) ranks #1 for AI Engineer at 0.886 vs backend candidate 0.731, and AI Engineer is her #1 recommendation; crafted-row filters (temp rows, cleaned up): wrong job_type EXCLUDED, 1y<3y EXCLUDED, Delhi+not-remote-open EXCLUDED, Delhi+remote-open INCLUDED, remote job includes non-remote-open Delhi candidate; warm timings 0.38–0.48s (<~500ms; NullPool fresh-TLS to Supabase dominates); incomplete candidate gets missing list + UI shows "Complete your setup" with both CTAs and zero cards; all four pages render with names/badges.
+- Commit: feat(match): v1 filters + ann similarity
+
+### Decisions
+- v1 FORMULA = pure cosine similarity (1 - distance); NO weights until 8.2. RETRIEVAL LIMIT 50 = the 8.2 rerank pool size.
+- Filters-before-vectors, two-sided symmetric: same three filter families (experience coalesce-≥, job-type strict-when-both-stated/relaxed-when-either-NULL, location remote-OR-open-OR-ilike) mirrored in both directions
+- NULL semantics: a side that doesn't state a preference relaxes the constraint (deviation from the strict reference SQL, which would exclude NULL-desired candidates from every typed job — too harsh)
+- Recruiter matches = separate page (not tab plumbing) linked from the jobs table
+
+### Key values for future steps
+- 8.2 hybrid rerank consumes the same LIMIT-50 pool: add skill-overlap + experience-fit terms, store breakdown
+- Endpoints: GET /jobs/recommended (candidate), GET /jobs/{id}/matches (recruiter owner)
+- Test candidates: Priya Desai (qa.candidate2.52, AI profile) · QA Candidate (qa.candidate.31, backend) · qa.candidate3.81 (incomplete, keep for honest-state regression)
+
+---

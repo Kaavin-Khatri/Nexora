@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Briefcase, Pencil } from "lucide-react";
+import { Briefcase, Pencil, Users } from "lucide-react";
 import { DataTable, type Column } from "@/components/ui-patterns/data-table";
 import { EmptyState } from "@/components/ui-patterns/empty-state";
 import {
@@ -40,12 +40,20 @@ const COLS: Column<Job>[] = [
     key: "actions",
     header: "",
     cell: (j) => (
-      <Link
-        href={`/recruiter/jobs/${j.id}/edit`}
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-      >
-        <Pencil className="size-3.5" aria-hidden /> Edit
-      </Link>
+      <span className="inline-flex items-center gap-3">
+        <Link
+          href={`/recruiter/jobs/${j.id}/matches`}
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          <Users className="size-3.5" aria-hidden /> Matches
+        </Link>
+        <Link
+          href={`/recruiter/jobs/${j.id}/edit`}
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          <Pencil className="size-3.5" aria-hidden /> Edit
+        </Link>
+      </span>
     ),
     className: "text-right",
   },

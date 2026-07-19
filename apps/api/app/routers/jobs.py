@@ -4,12 +4,30 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from sqlalchemy.orm import Session as OrmSession
+
 from app.core.security import CurrentUser, require_role
-from app.db.models import Job, RecruiterProfile
+from app.db.models import Job, Profile, RecruiterProfile, Resume
 from app.db.session import get_db
 from app.schemas.job import JobCreate, JobDetailOut, JobListOut, JobOut, JobUpdate
+from app.schemas.match import CandidateMatch, RecommendedJob, RecommendedResponse
 from app.services.job_ingest import ingest_job, reembed_job
+from app.services.matching_engine import candidates_for_job, jobs_for_candidate
 from app.services.skill_extractor import normalize_skills
+
+
+def _latest_parsed_resume(db: OrmSession, user_id: uuid.UUID) -> Resume | None:
+    return db.scalar(
+        select(Resume)
+        .where(
+            Resume.candidate_id == user_id,
+            Resume.status == "parsed",
+            Resume.embedding.is_not(None),
+        )
+        .order_by(Resume.created_at.desc())
+        .limit(1)
+    )
+
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -95,6 +113,47 @@ def browse_jobs(
         limit=limit,
         offset=offset,
     )
+
+
+# NOTE: registered BEFORE /{job_id} so "recommended" never parses as a UUID.
+@router.get("/recommended", response_model=RecommendedResponse)
+def recommended_jobs(
+    user: CurrentUser = Depends(require_role("candidate")),
+    db: Session = Depends(get_db),
+):
+    """Candidate's recommended jobs. When the profile/resume is incomplete,
+    returns an honest `missing` list instead of a silently empty grid."""
+    profile = db.get(Profile, user.id)
+    resume = _latest_parsed_resume(db, user.id)
+
+    missing: list[str] = []
+    if not (profile.location and profile.years_experience is not None and profile.desired_job_type):
+        missing.append("profile")
+    if resume is None:
+        missing.append("resume")
+    if missing:
+        return RecommendedResponse(items=[], missing=missing)
+
+    rows = jobs_for_candidate(db, profile, resume)
+    return RecommendedResponse(
+        items=[RecommendedJob(**r) for r in rows],
+        missing=[],
+    )
+
+
+@router.get("/{job_id}/matches", response_model=list[CandidateMatch])
+def job_matches(
+    job_id: uuid.UUID,
+    user: CurrentUser = Depends(require_role("recruiter")),
+    db: Session = Depends(get_db),
+):
+    job = db.get(Job, job_id)
+    # owner-only, 404 not 403 — existence never leaks
+    if job is None or job.recruiter_id != user.id:
+        raise HTTPException(404, "Job not found")
+    if job.embedding is None:
+        return []  # still ingesting — matches appear once embedded
+    return [CandidateMatch(**r) for r in candidates_for_job(db, job)]
 
 
 @router.get("/{job_id}", response_model=JobDetailOut)

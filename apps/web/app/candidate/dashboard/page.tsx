@@ -5,6 +5,7 @@ import {
   CompletenessCard,
   NewAccountFunnel,
   type Overview,
+  RecommendedCard,
   ScoreCard,
   SkillsCard,
 } from "./dashboard-cards";
@@ -39,12 +40,17 @@ export default async function CandidateDashboard() {
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
-          {overview.ats_score !== null && (
-            <ScoreCard
-              score={overview.ats_score}
-              improvements={overview.improvements}
-            />
-          )}
+          <div className="space-y-4">
+            {overview.ats_score !== null && (
+              <ScoreCard
+                score={overview.ats_score}
+                improvements={overview.improvements}
+              />
+            )}
+            {overview.recommended.length > 0 && (
+              <RecommendedCard jobs={overview.recommended} />
+            )}
+          </div>
           <div className="space-y-4">
             <CompletenessCard completeness={overview.completeness} />
             <SkillsCard skills={overview.skills} />

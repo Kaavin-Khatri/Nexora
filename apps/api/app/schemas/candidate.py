@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.match import RecommendedJob
+
 JobType = Literal["full_time", "part_time", "contract", "internship"]
 
 # LOCKED (5.1): these fields are Phase 8's hard-filter inputs.
@@ -57,3 +59,4 @@ class CandidateOverview(BaseModel):
     improvements: list[Improvement]  # the 3 lowest-scoring ATS checks
     skills: list[str]
     completeness: Completeness
+    recommended: list[RecommendedJob] = []  # top 3 matches (8.1)

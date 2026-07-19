@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Briefcase, MapPin } from "lucide-react";
+import { Briefcase, MapPin, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/ui-patterns/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -12,17 +12,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { api } from "@/lib/api-client";
+import { createClient } from "@/lib/supabase/server";
 import { JOB_TYPE_LABELS, type Job, type JobList } from "@/lib/jobs";
+import {
+  MatchBadge,
+  type RecommendedJob,
+} from "@/app/candidate/dashboard/dashboard-cards";
 import { FilterBar } from "./filter-bar";
 
 const PAGE_SIZE = 12;
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job, matchPct }: { job: Job; matchPct?: number }) {
   return (
     <Link href={`/candidate/jobs/${job.id}`} className="group">
       <Card className="h-full transition-colors group-hover:border-primary/50">
         <CardHeader>
-          <CardTitle className="text-base">{job.title}</CardTitle>
+          <CardTitle className="flex items-start justify-between gap-2 text-base">
+            <span>{job.title}</span>
+            {matchPct !== undefined && <MatchBadge similarity={matchPct} />}
+          </CardTitle>
           <CardDescription>
             {job.company?.name}
             {job.location && (
@@ -63,12 +71,141 @@ function JobCard({ job }: { job: Job }) {
   );
 }
 
+function Tabs({ active }: { active: "all" | "recommended" }) {
+  const base = "rounded-md px-3 py-1.5 text-sm transition-colors";
+  const on = "bg-primary text-primary-foreground";
+  const off = "text-muted-foreground hover:bg-accent hover:text-foreground";
+  return (
+    <div className="mb-4 flex gap-1 rounded-lg border border-border p-1 w-fit">
+      <Link
+        href="/candidate/jobs"
+        className={`${base} ${active === "all" ? on : off}`}
+      >
+        All jobs
+      </Link>
+      <Link
+        href="/candidate/jobs?tab=recommended"
+        className={`${base} ${active === "recommended" ? on : off}`}
+      >
+        <span className="inline-flex items-center gap-1">
+          <Sparkles className="size-3.5" aria-hidden /> Recommended
+        </span>
+      </Link>
+    </div>
+  );
+}
+
+type Recommended = { items: RecommendedJob[]; missing: string[] };
+
+async function RecommendedTab() {
+  const supabase = await createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const rec = await api<Recommended>("/jobs/recommended", {
+    headers: { Authorization: `Bearer ${session?.access_token}` },
+    cache: "no-store",
+  }).catch(() => null);
+
+  if (!rec) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Couldn’t load recommendations.
+      </p>
+    );
+  }
+
+  if (rec.missing.length > 0) {
+    return (
+      <EmptyState
+        icon={Sparkles}
+        title="Complete your setup to get matches."
+        sub={
+          rec.missing.includes("profile") && rec.missing.includes("resume")
+            ? "Fill in your profile (location, experience, job type) and upload a resume — matches need both."
+            : rec.missing.includes("profile")
+              ? "Fill in your profile — location, experience and desired job type drive the matching filters."
+              : "Upload a resume — your matches are ranked by how well it fits each role."
+        }
+        action={
+          <div className="flex gap-2">
+            {rec.missing.includes("profile") && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/candidate/profile">Fill profile</Link>
+              </Button>
+            )}
+            {rec.missing.includes("resume") && (
+              <Button size="sm" asChild>
+                <Link href="/candidate/resume">Upload resume</Link>
+              </Button>
+            )}
+          </div>
+        }
+      />
+    );
+  }
+
+  if (rec.items.length === 0) {
+    return (
+      <EmptyState
+        icon={Sparkles}
+        title="No matching jobs right now."
+        sub="Your filters (job type, experience, location) didn’t match any open roles — check back soon."
+      />
+    );
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {rec.items.map((r) => (
+        <JobCard
+          key={r.id}
+          matchPct={r.similarity}
+          job={{
+            id: r.id,
+            title: r.title,
+            description: "",
+            location: r.location,
+            remote: r.remote,
+            job_type: r.job_type as Job["job_type"],
+            min_experience: r.min_experience,
+            required_skills: r.required_skills ?? [],
+            status: "open",
+            created_at: "",
+            company: {
+              id: "",
+              name: r.company_name,
+              website: null,
+              size: null,
+              about: null,
+            },
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default async function CandidateJobsPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const sp = await searchParams;
+
+  if (sp.tab === "recommended") {
+    return (
+      <>
+        <PageHeader
+          title="Jobs"
+          description="Ranked by how well your resume fits each role."
+        />
+        <Tabs active="recommended" />
+        <RecommendedTab />
+      </>
+    );
+  }
+
   const qs = new URLSearchParams();
   if (sp.location) qs.set("location", sp.location);
   if (sp.job_type) qs.set("job_type", sp.job_type);
@@ -93,6 +230,7 @@ export default async function CandidateJobsPage({
         title="Jobs"
         description="Open roles — filters narrow the list."
       />
+      <Tabs active="all" />
       <FilterBar />
       {!list || list.items.length === 0 ? (
         <EmptyState

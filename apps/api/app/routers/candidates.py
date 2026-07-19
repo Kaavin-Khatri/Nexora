@@ -11,6 +11,8 @@ from app.schemas.candidate import (
     CandidateProfileUpdate,
     Completeness,
 )
+from app.schemas.match import RecommendedJob
+from app.services.matching_engine import jobs_for_candidate
 
 router = APIRouter(prefix="/candidates", tags=["candidates"])
 
@@ -45,6 +47,24 @@ def my_overview(
         imperfect = [c for c in checks if c["score"] < c["max"]]
         improvements = sorted(imperfect, key=lambda c: c["score"] / c["max"])[:3]
 
+    completeness = Completeness(
+        profile_complete=bool(
+            profile.location and profile.years_experience is not None and profile.desired_job_type
+        ),
+        resume_uploaded=resume is not None,
+        resume_parsed=bool(resume and resume.status == "parsed"),
+    )
+
+    # Top-3 matches for the dashboard's "Recommended for you" card.
+    recommended: list[RecommendedJob] = []
+    if (
+        completeness.profile_complete
+        and resume is not None
+        and resume.status == "parsed"
+        and resume.embedding is not None
+    ):
+        recommended = [RecommendedJob(**r) for r in jobs_for_candidate(db, profile, resume)[:3]]
+
     return CandidateOverview(
         profile=profile,
         resume_status=resume.status if resume else None,
@@ -53,15 +73,8 @@ def my_overview(
         else None,
         improvements=improvements,
         skills=(resume.skills or []) if resume else [],
-        completeness=Completeness(
-            profile_complete=bool(
-                profile.location
-                and profile.years_experience is not None
-                and profile.desired_job_type
-            ),
-            resume_uploaded=resume is not None,
-            resume_parsed=bool(resume and resume.status == "parsed"),
-        ),
+        completeness=completeness,
+        recommended=recommended,
     )
 
 

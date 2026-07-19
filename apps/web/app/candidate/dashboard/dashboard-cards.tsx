@@ -6,12 +6,25 @@ import {
   Circle,
   FileText,
   Gauge,
+  Sparkles,
   Wrench,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui-patterns/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export type RecommendedJob = {
+  id: string;
+  title: string;
+  company_name: string;
+  location: string | null;
+  remote: boolean;
+  job_type: string | null;
+  min_experience: number | null;
+  required_skills: string[] | null;
+  similarity: number;
+};
 
 export type Overview = {
   profile: {
@@ -31,7 +44,59 @@ export type Overview = {
     resume_uploaded: boolean;
     resume_parsed: boolean;
   };
+  recommended: RecommendedJob[];
 };
+
+export function MatchBadge({ similarity }: { similarity: number }) {
+  return (
+    <Badge className="bg-primary/15 font-mono tabular-nums text-primary border-primary/30">
+      {Math.round(similarity * 100)}% match
+    </Badge>
+  );
+}
+
+export function RecommendedCard({ jobs }: { jobs: RecommendedJob[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Sparkles className="size-4 text-muted-foreground" aria-hidden />
+          Recommended for you
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <ul className="space-y-2.5">
+          {jobs.map((j) => (
+            <li key={j.id}>
+              <Link
+                href={`/candidate/jobs/${j.id}`}
+                className="flex items-center justify-between gap-3 rounded-md border border-border p-3 transition-colors hover:border-primary/50"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium">
+                    {j.title}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {j.company_name}
+                    {j.location ? ` · ${j.location}` : ""}
+                  </span>
+                </span>
+                <MatchBadge similarity={j.similarity} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <Link
+          href="/candidate/jobs?tab=recommended"
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          See all recommendations{" "}
+          <ArrowRight className="size-3.5" aria-hidden />
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function ScoreCard({
   score,
