@@ -176,8 +176,11 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - apps/web/app/(auth)/signup + login pages (client components, minimal Tailwind; login honors ?next=); app/logout/route.ts (POST → signOut → 303 /login)
 - apps/web/middleware.ts — redirect matrix + session refresh (see Decisions)
 - apps/web/lib/nav.ts — NAV: Record<Role, NavItem[]> consumed by the Phase 4 shell
-- apps/web/app/candidate/dashboard + app/recruiter/dashboard — placeholder server components (name + role from session)
-- apps/web/app/candidate/profile/ — page.tsx (server fetch) + profile-form.tsx (rhf + zod client form, /candidates/me)
+- `apps/web/app/`
+  - `(auth)/` → Auth pages (login, signup, auth-callback)
+  - `(marketing)/` → Public landing pages with light marketing layout (page.tsx)
+  - `recruiter/` → Recruiter-specific shell layout (navbar, shell-content). Includes `/jobs` and `/dashboard`.
+  - `candidate/` → Candidate-specific shell layout. Includes `/applications` and `/jobs`.
 - apps/web/app/candidate/resume/ — page.tsx (server: GET /resumes/latest), resume-upload.tsx (state machine: dropzone → XHR-progress upload → processing/poll → parsed → renders review; failed/Retry; 30s poll timeout), resume-review.tsx (sectioned cards: Contact, Skills chip editor, Experience timeline, Education, Certifications — honest empty text per section; Re-parse + Re-upload). v1 editing = skills only.
 - apps/web/app/candidate/dashboard/ — page.tsx (server, ONE overview call), dashboard-cards.tsx (ScoreCard: big mono score + top-3 improvement lines verbatim from breakdown · SkillsCard: chips + edit link · CompletenessCard: checklist, unmet items link to fixes · NewAccountFunnel: EmptyState → profile + upload), loading.tsx (SkeletonCards mirroring the grid, no layout shift).
 - apps/web/app/recruiter/ — onboarding/page.tsx (standalone forced-once company form) + (shell)/ route group: layout.tsx (company gate → AppShell), dashboard/, company/ (detail + edit), jobs/ (DataTable: title/status/posted/applicants-placeholder/edit), jobs/new, jobs/[id]/edit (loads via /jobs/mine so closed stays editable). components/company-form.tsx + job-form.tsx (rhf+zod, create|edit) + skills-tag-input.tsx (taxonomy autocomplete + free tags). lib/company.ts + lib/jobs.ts = zod schema mirrors.
@@ -225,6 +228,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - EXPLAINABILITY UI (8.3): breakdown is render-only on the client, never recomputed. Tier thresholds (75/55) live purely in `lib/match-constants.ts`.
 - APPLY SNAPSHOT (9.1): no live re-scoring of applications. The match score and breakdown are calculated using the candidate's current resume exactly when `POST /applications` occurs, and permanently stored on the `Application` record.
 - ANALYTICS SCOPE CEILING (11.1): v1 analytics are strictly derived from live SQL aggregates on the `applications` and `jobs` tables. No event tables, no tracking pixels, zero new infrastructure. The upgrade path if volume scales beyond live aggregates is a nightly rollup cron or a dedicated event table — but not until needed.
+- MARKETING COPY CLAIMS (12.1): claims-must-be-true rule enforced. No lorem ipsum or vaporware. Every feature claimed on the landing page is backed by the shipped production system (Phase 8-11).
 
 ## Security
 - Token validation (app/core/security.py): every protected route verifies the Supabase JWT independently — signature via project JWKS (ES256, cached PyJWKClient; HS256 fallback if SUPABASE_JWT_SECRET set), aud must be 'authenticated', exp enforced, 30s clock-skew leeway. 401 on any failure; require_role() → 403 on role mismatch.

@@ -892,3 +892,21 @@ appends here + updates the audit after finishing. Never store secret values here
 
 ### Key values for future steps
 - Metric Definitions: Total Applicants = sum of all applications to the company's jobs. Avg Match = SQL avg(match_score) over all applications. Funnel = SQL count grouped by status.
+
+## Step 12.1 — Landing Structure & Copy
+**Timestamp:** 2026-08-10T18:38:22Z
+**Status:** COMPLETE
+
+### What was done
+- Created new marketing layout in apps/web/app/(marketing)/layout.tsx without the dashboard shell.
+- Created apps/web/app/(marketing)/page.tsx using the chosen headline, dual CTAs, a 3-step 'how matching works' process, and a feature grid.
+- Captured 4 real UI screenshots and placed them in apps/web/public/images/ for the feature grid.
+- Ensured responsive design from 360px to 1440px using standard Tailwind constraints and modern UI.
+
+### Decisions
+- Claims-must-be-true copy rule enforced. No lorem ipsum, no vaporware marketing. Every claim on the landing page accurately describes the shipped product (Phase 8-11).
+
+### Key values for future steps
+- Final headline: 'Hiring, with reasons.'
+- Positioning line: 'AI matching you can trust. We don't just score candidates; we show you exactly why they fit your role, based on semantic analysis and extracted skills.'
+- Lighthouse Baseline Score: 98 (excellent baseline before GSAP motion is introduced in 12.2).
