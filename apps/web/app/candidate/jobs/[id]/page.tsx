@@ -1,11 +1,20 @@
 import { notFound } from "next/navigation";
-import { Building2, MapPin } from "lucide-react";
+import { Building2, MapPin, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { MatchScoreCard } from "@/components/ui-patterns/match-score-card";
+import { SkillGapPanel } from "@/components/ui-patterns/skill-gap-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api-client";
 import { JOB_TYPE_LABELS, type Job } from "@/lib/jobs";
+import { createClient } from "@/lib/supabase/server";
+import type {
+  MatchBreakdown,
+  RecommendedJob,
+} from "@/app/candidate/dashboard/dashboard-cards";
+
+type Recommended = { items: RecommendedJob[]; missing: string[] };
 
 export default async function JobDetailPage({
   params,
@@ -17,6 +26,28 @@ export default async function JobDetailPage({
     () => null,
   );
   if (!job) notFound();
+
+  // Try to load the candidate's match for this job (fails silently for
+  // logged-out visitors or non-candidates — the fit section just hides).
+  let matchData: { score: number; breakdown: MatchBreakdown } | null = null;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      const rec = await api<Recommended>("/jobs/recommended", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: "no-store",
+      });
+      const found = rec.items.find((r) => r.id === id);
+      if (found) {
+        matchData = { score: found.score, breakdown: found.breakdown };
+      }
+    }
+  } catch {
+    // Not logged in or not a candidate — no fit section shown
+  }
 
   return (
     <>
@@ -33,6 +64,28 @@ export default async function JobDetailPage({
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+          {/* Your fit — only when the candidate has a match */}
+          {matchData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Sparkles
+                    className="size-4 text-muted-foreground"
+                    aria-hidden
+                  />
+                  Your fit
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <MatchScoreCard
+                  score={matchData.score}
+                  breakdown={matchData.breakdown}
+                  defaultExpanded
+                />
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">About this role</CardTitle>
@@ -66,12 +119,25 @@ export default async function JobDetailPage({
               <CardHeader>
                 <CardTitle className="text-base">Required skills</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {job.required_skills.map((s) => (
-                  <Badge key={s} variant="secondary">
-                    {s}
-                  </Badge>
-                ))}
+              <CardContent>
+                {matchData ? (
+                  <SkillGapPanel
+                    matched={matchData.breakdown.matched}
+                    missing={matchData.breakdown.missing}
+                    totalRequired={
+                      matchData.breakdown.matched.length +
+                      matchData.breakdown.missing.length
+                    }
+                  />
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {job.required_skills.map((s) => (
+                      <Badge key={s} variant="secondary">
+                        {s}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -80,7 +146,10 @@ export default async function JobDetailPage({
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Building2 className="size-4 text-muted-foreground" aria-hidden />
+              <Building2
+                className="size-4 text-muted-foreground"
+                aria-hidden
+              />
               {job.company?.name}
             </CardTitle>
           </CardHeader>

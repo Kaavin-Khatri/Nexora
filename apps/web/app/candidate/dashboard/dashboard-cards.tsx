@@ -13,6 +13,8 @@ import { EmptyState } from "@/components/ui-patterns/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getMatchTier } from "@/lib/match-constants";
+import { cn } from "@/lib/utils";
 
 export type MatchBreakdown = {
   embedding_sim: number;
@@ -59,12 +61,17 @@ export type Overview = {
 };
 
 export function MatchBadge({ score }: { score: number }) {
+  const tier = getMatchTier(score);
   return (
     <Badge className="bg-primary/15 font-mono tabular-nums text-primary border-primary/30">
-      {Math.round(score * 100)}% match
+      {Math.round(score * 100)}%
+      <span className={cn("ml-1 font-sans text-[0.65rem]", tier.className)}>
+        {tier.label}
+      </span>
     </Badge>
   );
 }
+
 
 export function RecommendedCard({ jobs }: { jobs: RecommendedJob[] }) {
   return (

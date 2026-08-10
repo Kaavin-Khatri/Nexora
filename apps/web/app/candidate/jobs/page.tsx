@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Briefcase, MapPin, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/ui-patterns/empty-state";
+import { MatchScoreCard } from "@/components/ui-patterns/match-score-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,29 +159,31 @@ async function RecommendedTab() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {rec.items.map((r) => (
-        <JobCard
-          key={r.id}
-          matchPct={r.score}
-          job={{
-            id: r.id,
-            title: r.title,
-            description: "",
-            location: r.location,
-            remote: r.remote,
-            job_type: r.job_type as Job["job_type"],
-            min_experience: r.min_experience,
-            required_skills: r.required_skills ?? [],
-            status: "open",
-            created_at: "",
-            company: {
-              id: "",
-              name: r.company_name,
-              website: null,
-              size: null,
-              about: null,
-            },
-          }}
-        />
+        <div key={r.id} className="space-y-2">
+          <JobCard
+            matchPct={r.score}
+            job={{
+              id: r.id,
+              title: r.title,
+              description: "",
+              location: r.location,
+              remote: r.remote,
+              job_type: r.job_type as Job["job_type"],
+              min_experience: r.min_experience,
+              required_skills: r.required_skills ?? [],
+              status: "open",
+              created_at: "",
+              company: {
+                id: "",
+                name: r.company_name,
+                website: null,
+                size: null,
+                about: null,
+              },
+            }}
+          />
+          <MatchScoreCard score={r.score} breakdown={r.breakdown} />
+        </div>
       ))}
     </div>
   );

@@ -751,3 +751,29 @@ appends here + updates the audit after finishing. Never store secret values here
 - The proving pair is a pytest-runnable regression test — if weights change, it still asserts A > B
 
 ---
+
+## Step 8.3 — Explainability UI (MatchScoreCard + SkillGapPanel)
+**Timestamp:** 2026-08-10T11:43:00Z
+**Status:** COMPLETE
+
+### What was done
+- Extracted match tier thresholds and score component definitions to a single source of truth (`lib/match-constants.ts`).
+- Built `SkillGapPanel` to show matched vs missing chips cleanly wrapping at small breakpoints.
+- Built `MatchScoreCard`: an expandable card showing the tier label, three component bars with their weights, and the `SkillGapPanel`. Added product-voice tooltips.
+- Added `SkillGapPanel` to candidate job detail ("Your fit").
+- Replaced plain match percentage in Recruiter Matches list with `MatchScoreCard` inside expandable rows.
+- Updated Candidate jobs recommended tab to render `MatchScoreCard` directly below the job card.
+- Updated `MatchBadge` across the dashboard to include the tier label from the new constants.
+- Verified tier thresholds boundaries behave perfectly (e.g., exactly 74.9/75 cutoff logic lines up with display rounding).
+
+### Decisions
+- RULE: The breakdown is render-only on the client; we NEVER recompute scores in the browser to avoid drift.
+- Tier thresholds: Strong match >= 75%, Good match >= 55%, Partial match below 55%. These live strictly in `lib/match-constants.ts`.
+- Component tooltips are designed as non-technical product copy for human readability.
+
+### Key values for future steps
+- Constants: `lib/match-constants.ts` (MATCH_TIERS, SCORE_COMPONENTS)
+- UI Components: `MatchScoreCard`, `SkillGapPanel` in `components/ui-patterns/`
+- Rule for UI match values: `Math.round(score * 100)` is the canonical UI display percentage.
+
+---

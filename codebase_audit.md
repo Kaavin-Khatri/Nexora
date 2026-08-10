@@ -185,6 +185,8 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
   - skeletons.tsx: SkeletonCard · SkeletonTable(rows, cols) · SkeletonForm(fields)
   - status-badge.tsx: StatusBadge(status) — SINGLE source of status colors (12 statuses across application/job/resume)
   - data-table.tsx: DataTable(columns: Column<T>[], data, rowKey, loading?, empty) — client sorting (sortValue → aria-sort), loading renders SkeletonTable, empty renders the caller's EmptyState. All lists use this or a card grid — no bespoke tables.
+  - match-score-card.tsx: MatchScoreCard(score, breakdown, defaultExpanded?) — explainability UI expanding to show the three weighted bars + chips.
+  - skill-gap-panel.tsx: SkillGapPanel(matched, missing, totalRequired) — reusable component showing accent chips for matched vs muted-danger chips for missing skills.
 - apps/web/app/styleguide — dev-only token + primitive regression page
 - apps/web/app/page.tsx — minimal token-clean landing (real marketing page in a later phase)
 
@@ -211,6 +213,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - docker-compose.yml is a fallback ONLY (Supabase paused scenario); port 5433 avoids local 5432 clashes
 - HYBRID RERANK (8.2): why hybrid > pure cosine, WITH the constructed counter-example: Job requires Python+FastAPI+PostgreSQL+Docker+Redis. Candidate A has all 5 (cosine 0.65) → hybrid 0.825. Candidate B has only Python (cosine 0.88) → hybrid 0.66. Pure cosine picks B; hybrid picks A because skill_overlap 1.0 vs 0.2 dominates the 35% weight. Substance over style. Pinned by test_matching_engine.py::test_a_outranks_b_proving_pair.
 - MATCH WEIGHTS: MATCH_W_SIM=0.5 / MATCH_W_SKILL=0.35 / MATCH_W_EXP=0.15 (env-tunable via config.py, echoed in every breakdown for honesty). Redistribution: empty required_skills → skill weight moves to semantic (0.85/0.0/0.15) with an explicit note in the breakdown.
+- EXPLAINABILITY UI (8.3): breakdown is render-only on the client, never recomputed. Tier thresholds (75/55) live purely in `lib/match-constants.ts`.
 
 ## Security
 - Token validation (app/core/security.py): every protected route verifies the Supabase JWT independently — signature via project JWKS (ES256, cached PyJWKClient; HS256 fallback if SUPABASE_JWT_SECRET set), aud must be 'authenticated', exp enforced, 30s clock-skew leeway. 401 on any failure; require_role() → 403 on role mismatch.
