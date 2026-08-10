@@ -29,7 +29,7 @@ function JobCard({ job, matchPct }: { job: Job; matchPct?: number }) {
         <CardHeader>
           <CardTitle className="flex items-start justify-between gap-2 text-base">
             <span>{job.title}</span>
-            {matchPct !== undefined && <MatchBadge similarity={matchPct} />}
+            {matchPct !== undefined && <MatchBadge score={matchPct} />}
           </CardTitle>
           <CardDescription>
             {job.company?.name}
@@ -160,7 +160,7 @@ async function RecommendedTab() {
       {rec.items.map((r) => (
         <JobCard
           key={r.id}
-          matchPct={r.similarity}
+          matchPct={r.score}
           job={{
             id: r.id,
             title: r.title,

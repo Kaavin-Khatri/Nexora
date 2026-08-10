@@ -720,3 +720,34 @@ appends here + updates the audit after finishing. Never store secret values here
 - Test candidates: Priya Desai (qa.candidate2.52, AI profile) · QA Candidate (qa.candidate.31, backend) · qa.candidate3.81 (incomplete, keep for honest-state regression)
 
 ---
+
+## Step 8.2 — Hybrid Rerank + Explainable Breakdown
+**Timestamp:** 2026-08-10T11:34:00Z
+**Status:** COMPLETE
+
+### What was done
+- app/services/matching_engine.py already contained the full hybrid rerank implementation from a prior session (skill_terms, exp_fit, score_pair, rerank) — verified correct, all functions present and wired.
+- app/core/config.py already had MATCH_W_SIM/MATCH_W_SKILL/MATCH_W_EXP env-tunable weights (0.5/0.35/0.15).
+- app/schemas/match.py already had MatchBreakdown with embedding_sim, skill_overlap, exp_fit, matched[], missing[], weights{}, note.
+- Both candidate (GET /jobs/recommended, GET /candidates/me/overview) and recruiter (GET /jobs/{id}/matches) endpoints already return score + breakdown.
+- **NEW** tests/test_matching_engine.py: 26 tests covering skill_terms edges (perfect/partial/zero/case-insensitive/empty-both-sides/dedup), exp_fit (ideal/at-min/None-coalesce/far-away/clamped), score_pair (determinism/weights-sum-to-1/recomputes/bounds), weight redistribution (note present/semantic absorbs skill weight), and the A-vs-B proving pair.
+- Verified all 26 matching tests + all 5 ATS tests pass.
+
+### Decisions
+- WEIGHTS (default, env-tunable): MATCH_W_SIM=0.5, MATCH_W_SKILL=0.35, MATCH_W_EXP=0.15 — sum to 1.0, echoed in every breakdown.
+- REDISTRIBUTION RULE: when job.required_skills is empty, skill weight (0.35) transfers to semantic → effective weights 0.85/0.0/0.15. The breakdown says so in the `note` field.
+- EXP_FIT: ideal = min_experience + 2 (IDEAL_OFFSET), falls linearly to 0 across ±4 years (EXP_BAND). NULLs coalesce to 0 (same as SQL filters).
+- SCORE COMPUTATION: components are individually rounded to 4dp BEFORE weighting, so the breakdown always recomputes exactly to the stored score (explainability is data, not vibes).
+- A-VS-B COUNTER-EXAMPLE (THE 'why hybrid beats cosine' proof):
+    Job requires: Python, FastAPI, PostgreSQL, Docker, Redis.
+    Candidate A: all 5 required skills, cosine sim 0.65 → hybrid score **0.825**.
+    Candidate B: only Python (1/5), cosine sim 0.88 → hybrid score **0.66**.
+    Pure cosine: B wins (0.88 > 0.65). Hybrid rerank: A wins (0.825 > 0.66) because skill_overlap 1.0 vs 0.2 dominates the 35% weight — the system rewards substance over style.
+
+### Key values for future steps
+- Tests: apps/api/.venv/Scripts/python.exe apps/api/tests/test_matching_engine.py (26 tests, standalone)
+- Config env vars: MATCH_W_SIM, MATCH_W_SKILL, MATCH_W_EXP (all optional, defaults 0.5/0.35/0.15)
+- Breakdown shape: {embedding_sim, skill_overlap (nullable), exp_fit, matched[], missing[], weights{semantic,skills,experience}, note (nullable)}
+- The proving pair is a pytest-runnable regression test — if weights change, it still asserts A > B
+
+---

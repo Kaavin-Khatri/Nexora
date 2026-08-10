@@ -14,6 +14,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+export type MatchBreakdown = {
+  embedding_sim: number;
+  skill_overlap: number | null; // null = job listed no required skills
+  exp_fit: number;
+  matched: string[];
+  missing: string[];
+  weights: Record<string, number>;
+  note: string | null;
+};
+
 export type RecommendedJob = {
   id: string;
   title: string;
@@ -23,7 +33,8 @@ export type RecommendedJob = {
   job_type: string | null;
   min_experience: number | null;
   required_skills: string[] | null;
-  similarity: number;
+  score: number;
+  breakdown: MatchBreakdown;
 };
 
 export type Overview = {
@@ -47,10 +58,10 @@ export type Overview = {
   recommended: RecommendedJob[];
 };
 
-export function MatchBadge({ similarity }: { similarity: number }) {
+export function MatchBadge({ score }: { score: number }) {
   return (
     <Badge className="bg-primary/15 font-mono tabular-nums text-primary border-primary/30">
-      {Math.round(similarity * 100)}% match
+      {Math.round(score * 100)}% match
     </Badge>
   );
 }
@@ -81,7 +92,7 @@ export function RecommendedCard({ jobs }: { jobs: RecommendedJob[] }) {
                     {j.location ? ` · ${j.location}` : ""}
                   </span>
                 </span>
-                <MatchBadge similarity={j.similarity} />
+                <MatchBadge score={j.score} />
               </Link>
             </li>
           ))}

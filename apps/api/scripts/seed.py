@@ -21,7 +21,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from app.core.config import settings, sqlalchemy_url  # noqa: E402
-from app.db.models import Company, Job, Profile, RecruiterProfile, Skill  # noqa: E402
+from app.db.models import Company, Job, Profile, RecruiterProfile, Resume, Skill  # noqa: E402
 
 NS = uuid.uuid5(uuid.NAMESPACE_DNS, "seed.nexora")
 
@@ -361,6 +361,158 @@ JOBS = [
             "monthly, invoiced, benchmarked to senior contractor rates in India; equipment provided "
             "if needed."
         ),
+    },
+]
+
+
+# ---------------------------------------------------------------------------
+# 8.2 PROVING PAIR — why hybrid beats pure cosine, as data.
+# Candidate A: exactly the AI Engineer job's required skills, plain wording.
+# Candidate B: buzzword-rich prose that echoes the job's vocabulary, but few of
+# the required skills in the structured skills field.
+# Cosine reads words, so B scores high on similarity; skill overlap reads the
+# verified skills field, so the hybrid rerank puts A on top.
+# tests/test_matching.py imports this pair and pins that outcome.
+# ---------------------------------------------------------------------------
+PROVING_JOB_TITLE = "AI Engineer"  # seeded above: min_experience 3, 7 required skills
+
+PROVING_PAIR = [
+    {
+        "key": "candidate/arjun-exact",
+        "profile": {
+            "full_name": "Arjun Patel",
+            "headline": "Software engineer — retrieval + LLM features",
+            "location": "Bengaluru",
+            "years_experience": 4,
+            "desired_job_type": "full_time",
+            "open_to_remote": True,
+        },
+        "skills": [
+            "Python",
+            "LLMs",
+            "RAG",
+            "Embeddings",
+            "pgvector",
+            "FastAPI",
+            "Prompt Engineering",
+        ],
+        "parsed": {
+            "contact": {
+                "name": "Arjun Patel",
+                "email": "arjun.patel@example.com",
+                "phone": None,
+                "location": "Bengaluru",
+            },
+            "summary": "Software engineer who builds retrieval and LLM features "
+            "for payment products.",
+            "skills": [
+                "Python",
+                "LLMs",
+                "RAG",
+                "Embeddings",
+                "pgvector",
+                "FastAPI",
+                "Prompt Engineering",
+            ],
+            "experience": [
+                {
+                    "title": "Software Engineer",
+                    "company": "Finlytics",
+                    "start": "2022",
+                    "end": None,
+                    "current": True,
+                    "bullets": [
+                        "Built a question answering service over 2 million support "
+                        "documents with pgvector retrieval behind a FastAPI backend.",
+                        "Cut answer latency from 4.2s to 1.1s by caching embeddings "
+                        "and batching retrieval queries.",
+                        "Wrote an evaluation harness scoring prompt changes against "
+                        "500 labelled merchant questions.",
+                    ],
+                }
+            ],
+            "education": [
+                {
+                    "degree": "B.Tech Computer Science",
+                    "institution": "BMS College of Engineering",
+                    "year": "2021",
+                }
+            ],
+            "certifications": [],
+            "total_years_estimate": 4.0,
+        },
+    },
+    {
+        "key": "candidate/kabir-buzzword",
+        "profile": {
+            "full_name": "Kabir Malhotra",
+            "headline": "Visionary AI transformation leader",
+            "location": "Bengaluru",
+            "years_experience": 4,
+            "desired_job_type": "full_time",
+            "open_to_remote": True,
+        },
+        "skills": [
+            "Machine Learning",
+            "Deep Learning",
+            "NLP",
+            "Computer Vision",
+            "TensorFlow",
+            "Leadership",
+            "Communication",
+            "Python",
+        ],
+        "parsed": {
+            "contact": {
+                "name": "Kabir Malhotra",
+                "email": "kabir.malhotra@example.com",
+                "phone": None,
+                "location": "Bengaluru",
+            },
+            "summary": "Visionary AI engineer leveraging cutting-edge generative AI, "
+            "large language models, retrieval augmented generation, semantic vector "
+            "search, embeddings intelligence and prompt engineering excellence to "
+            "deliver next-generation intelligent solutions.",
+            "skills": [
+                "Machine Learning",
+                "Deep Learning",
+                "NLP",
+                "Computer Vision",
+                "TensorFlow",
+                "Leadership",
+                "Communication",
+                "Python",
+            ],
+            "experience": [
+                {
+                    "title": "AI Evangelist",
+                    "company": "SynergyMind Labs",
+                    "start": "2022",
+                    "end": None,
+                    "current": True,
+                    "bullets": [
+                        "Championed enterprise AI engineering transformation, "
+                        "evangelizing large language models, agentic AI and "
+                        "generative intelligence across business units.",
+                        "Drove prompt engineering excellence and retrieval augmented "
+                        "generation adoption through visionary AI innovation "
+                        "workshops and intelligent automation initiatives.",
+                        "Spearheaded semantic vector search, embedding-based "
+                        "intelligence and LLM-powered assistant strategies for "
+                        "merchant analytics and fraud signal ideation.",
+                    ],
+                }
+            ],
+            "education": [
+                {
+                    "degree": "MBA Technology Management",
+                    "institution": "Presidency University",
+                    "year": "2020",
+                }
+            ],
+            "certifications": [],
+            "total_years_estimate": 4.0,
+        },
     },
 ]
 

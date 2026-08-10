@@ -4,6 +4,7 @@ import { Users } from "lucide-react";
 import { DataTable, type Column } from "@/components/ui-patterns/data-table";
 import { EmptyState } from "@/components/ui-patterns/empty-state";
 import { Badge } from "@/components/ui/badge";
+import type { MatchBreakdown } from "@/app/candidate/dashboard/dashboard-cards";
 
 export type CandidateMatch = {
   user_id: string;
@@ -11,7 +12,8 @@ export type CandidateMatch = {
   years_experience: number | null;
   resume_id: string;
   skills: string[] | null;
-  similarity: number;
+  score: number;
+  breakdown: MatchBreakdown;
 };
 
 const COLS: Column<CandidateMatch>[] = [
@@ -22,14 +24,14 @@ const COLS: Column<CandidateMatch>[] = [
     sortValue: (m) => m.full_name,
   },
   {
-    key: "similarity",
+    key: "score",
     header: "Match",
     cell: (m) => (
       <span className="font-mono tabular-nums text-primary">
-        {Math.round(m.similarity * 100)}%
+        {Math.round(m.score * 100)}%
       </span>
     ),
-    sortValue: (m) => m.similarity,
+    sortValue: (m) => m.score,
   },
   {
     key: "experience",

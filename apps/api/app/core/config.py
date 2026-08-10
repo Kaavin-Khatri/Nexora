@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000"
     FASTEMBED_CACHE: str = ".fastembed_cache"
 
+    # Hybrid match weights (8.2) — must sum to 1.0; echoed in every breakdown.
+    MATCH_W_SIM: float = 0.5
+    MATCH_W_SKILL: float = 0.35
+    MATCH_W_EXP: float = 0.15
+
     @property
     def allowed_origins_list(self) -> list[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
