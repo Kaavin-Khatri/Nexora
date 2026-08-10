@@ -25,6 +25,8 @@ import { getMatchTier } from "@/lib/match-constants";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InterviewQuestions } from "./interview-questions";
+import { motion, AnimatePresence } from "motion/react";
+import { useReducedMotionSafe } from "@/hooks/use-reduced-motion-safe";
 
 const TRANSITION_MAP: Record<string, string[]> = {
   applied: ["screening", "shortlisted", "rejected"],
@@ -81,11 +83,25 @@ export function ApplicantDetailDrawer({
   const hasContact = c.name || c.email || c.phone || c.location;
 
   const allowedNext = TRANSITION_MAP[applicant.status] || [];
+  const reduceMotion = useReducedMotionSafe();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
-        <SheetHeader className="mb-4">
+      <AnimatePresence>
+        {open && (
+          <SheetContent 
+            forceMount 
+            asChild
+            side="right" 
+            className="w-full sm:max-w-xl overflow-y-auto data-closed:animate-none data-open:animate-none"
+          >
+            <motion.div
+              initial={!reduceMotion ? { x: "100%" } : false}
+              animate={!reduceMotion ? { x: 0 } : false}
+              exit={!reduceMotion ? { x: "100%" } : false}
+              transition={{ type: "spring", bounce: 0, duration: 0.25 }}
+            >
+              <SheetHeader className="mb-4">
           <div className="flex justify-between items-start pr-6">
             <div>
               <SheetTitle className="text-xl">{applicant.candidate.full_name}</SheetTitle>
@@ -251,7 +267,10 @@ export function ApplicantDetailDrawer({
             <InterviewQuestions applicationId={applicant.id} />
           </TabsContent>
         </Tabs>
-      </SheetContent>
+            </motion.div>
+          </SheetContent>
+        )}
+      </AnimatePresence>
     </Sheet>
   );
 }

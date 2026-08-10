@@ -927,3 +927,26 @@ appends here + updates the audit after finishing. Never store secret values here
 ### Key values for future steps
 - GSAP scope: strictly (marketing) only, enforced by dynamic imports.
 - Post-motion Lighthouse Score: 98 (Unchanged from 12.1 baseline since the animation JS is loaded dynamically and lazily evaluated).
+
+## Step 13.1 — Dashboard Motion Micro-Interactions
+**Timestamp:** 2026-08-10T18:52:19.3147509+05:30
+**Status:** COMPLETE
+
+### What was done
+- Added Framer Motion to the web app.
+- Created \useReducedMotionSafe\ hook to centrally gate all motion.
+- Added 150ms page-level fade-ins via \	emplate.tsx\ for candidate and recruiter routes.
+- Built \MotionList\ wrapper for staggered entrance of job cards and applicant rows.
+- Wrapped \DataTable\ in \AnimatePresence\ to gracefully crossfade skeleton data loading and support optimistic layout shifts (\layout=\position\).
+- Added \AnimatePresence\ crossfade to \StatusBadge\ for state transitions.
+- Overrode default shadcn/Radix sliding drawer animation with a spring animation inside \ApplicantDetailDrawer\ using \motion.div\ with \orceMount\ and \AnimatePresence\.
+- Added subtle 120ms hover lift and shadow transitions to \JobCard\ and dashboard cards.
+
+### Decisions
+- Reduced-motion always strictly disables animations or falls back to CSS. Framer Motion is natively reduced-motion aware, but \useReducedMotionSafe\ guarantees it across manual variants and orchestrates layout skips.
+- Motion Budget: Maximum 250ms per interaction. Only \opacity\ and \	ransform\ are animated to avoid main-thread layout thrashing.
+- Re-sorting rows in the data table does not trigger entrance animation because stable keys persist the DOM nodes.
+
+### Key values for future steps
+- Motion Budget: transform/opacity only, <= 250ms, reduced-motion gated.
+- Animation inventory appended to codebase_audit.md components section.

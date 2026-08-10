@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { SkeletonTable } from "./skeletons";
+import { motion, AnimatePresence } from "motion/react";
+import { useReducedMotionSafe } from "@/hooks/use-reduced-motion-safe";
 
 // The standard list surface: every future list uses DataTable (or a card
 // grid) — no bespoke tables. Columns with sortValue get client sorting.
@@ -39,6 +41,7 @@ export function DataTable<T>({
   onRowClick?: (row: T) => void;
 }) {
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
+  const reduceMotion = useReducedMotionSafe();
 
   const sorted = useMemo(() => {
     if (!sort) return data;
@@ -52,12 +55,38 @@ export function DataTable<T>({
     });
   }, [data, sort, columns]);
 
-  if (loading) return <SkeletonTable rows={5} cols={columns.length} />;
-  if (data.length === 0) return <>{empty}</>;
-
   return (
-    <Table>
-      <TableHeader>
+    <AnimatePresence mode="wait">
+      {loading ? (
+        <motion.div
+          key="loading"
+          initial={!reduceMotion ? { opacity: 0 } : false}
+          animate={!reduceMotion ? { opacity: 1 } : false}
+          exit={!reduceMotion ? { opacity: 0 } : false}
+          transition={{ duration: 0.15 }}
+        >
+          <SkeletonTable rows={5} cols={columns.length} />
+        </motion.div>
+      ) : data.length === 0 ? (
+        <motion.div
+          key="empty"
+          initial={!reduceMotion ? { opacity: 0 } : false}
+          animate={!reduceMotion ? { opacity: 1 } : false}
+          exit={!reduceMotion ? { opacity: 0 } : false}
+          transition={{ duration: 0.15 }}
+        >
+          {empty}
+        </motion.div>
+      ) : (
+        <motion.div
+          key="table"
+          initial={!reduceMotion ? { opacity: 0 } : false}
+          animate={!reduceMotion ? { opacity: 1 } : false}
+          exit={!reduceMotion ? { opacity: 0 } : false}
+          transition={{ duration: 0.15 }}
+        >
+          <Table>
+            <TableHeader>
         <TableRow>
           {columns.map((col) => (
             <TableHead
@@ -104,21 +133,42 @@ export function DataTable<T>({
           ))}
         </TableRow>
       </TableHeader>
-      <TableBody>
-        {sorted.map((row) => (
-          <TableRow 
-            key={rowKey(row)}
-            onClick={onRowClick ? () => onRowClick(row) : undefined}
-            className={onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined}
-          >
-            {columns.map((col) => (
-              <TableCell key={col.key} className={col.className}>
-                {col.cell(row)}
-              </TableCell>
-            ))}
-          </TableRow>
-        ))}
-      </TableBody>
+      <motion.tbody
+        className="[&_tr:last-child]:border-0"
+        initial={!reduceMotion ? "hidden" : false}
+        animate={!reduceMotion ? "visible" : false}
+        variants={{
+          visible: { transition: { staggerChildren: 0.05 } }
+        }}
+      >
+        <AnimatePresence mode="popLayout">
+          {sorted.map((row) => (
+            <motion.tr
+              layout={!reduceMotion ? "position" : false}
+              key={rowKey(row)}
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } }
+              }}
+              exit={!reduceMotion ? { opacity: 0, transition: { duration: 0.15 } } : { opacity: 0 }}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              className={cn(
+                "border-b transition-colors data-[state=selected]:bg-muted",
+                onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined
+              )}
+            >
+              {columns.map((col) => (
+                <TableCell key={col.key} className={col.className}>
+                  {col.cell(row)}
+                </TableCell>
+              ))}
+            </motion.tr>
+          ))}
+        </AnimatePresence>
+      </motion.tbody>
     </Table>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

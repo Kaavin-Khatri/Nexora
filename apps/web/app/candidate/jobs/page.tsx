@@ -20,13 +20,14 @@ import {
   type RecommendedJob,
 } from "@/app/candidate/dashboard/dashboard-cards";
 import { FilterBar } from "./filter-bar";
+import { MotionList, MotionListItem } from "@/components/ui-patterns/motion-list";
 
 const PAGE_SIZE = 12;
 
 function JobCard({ job, matchPct }: { job: Job; matchPct?: number }) {
   return (
-    <Link href={`/candidate/jobs/${job.id}`} className="group">
-      <Card className="h-full transition-colors group-hover:border-primary/50">
+    <Link href={`/candidate/jobs/${job.id}`} className="group block">
+      <Card className="h-full transition-all duration-120 hover:-translate-y-[2px] hover:shadow-md hover:border-primary/50">
         <CardHeader>
           <CardTitle className="flex items-start justify-between gap-2 text-base">
             <span>{job.title}</span>
@@ -157,9 +158,9 @@ async function RecommendedTab() {
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <MotionList className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {rec.items.map((r) => (
-        <div key={r.id} className="space-y-2">
+        <MotionListItem key={r.id} className="space-y-2">
           <JobCard
             matchPct={r.score}
             job={{
@@ -184,9 +185,9 @@ async function RecommendedTab() {
             }}
           />
           <MatchScoreCard score={r.score} breakdown={r.breakdown} />
-        </div>
+        </MotionListItem>
       ))}
-    </div>
+    </MotionList>
   );
 }
 
@@ -244,11 +245,13 @@ export default async function CandidateJobsPage({
         />
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <MotionList className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {list.items.map((job) => (
-              <JobCard key={job.id} job={job} />
+              <MotionListItem key={job.id}>
+                <JobCard job={job} />
+              </MotionListItem>
             ))}
-          </div>
+          </MotionList>
           {list.total > PAGE_SIZE && (
             <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
               <span>

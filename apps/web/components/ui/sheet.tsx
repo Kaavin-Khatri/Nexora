@@ -24,9 +24,10 @@ function SheetClose({
 }
 
 function SheetPortal({
+  forceMount,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
-  return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
+  return <SheetPrimitive.Portal data-slot="sheet-portal" forceMount={forceMount} {...props} />;
 }
 
 function SheetOverlay({
@@ -50,15 +51,18 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  forceMount,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left";
   showCloseButton?: boolean;
+  forceMount?: true;
 }) {
   return (
-    <SheetPortal>
+    <SheetPortal forceMount={forceMount}>
       <SheetOverlay />
       <SheetPrimitive.Content
+        forceMount={forceMount}
         data-slot="sheet-content"
         data-side={side}
         className={cn(

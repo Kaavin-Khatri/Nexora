@@ -1,5 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "motion/react";
+import { useReducedMotionSafe } from "@/hooks/use-reduced-motion-safe";
 
 // THE single source of status color truth. No other file maps a status to a
 // color — new statuses get added here and nowhere else.
@@ -44,12 +46,36 @@ export function StatusBadge({
   status: Status;
   className?: string;
 }) {
+  const reduceMotion = useReducedMotionSafe();
+
+  if (reduceMotion) {
+    return (
+      <Badge
+        variant="outline"
+        className={cn("capitalize", STATUS_STYLES[status], className)}
+      >
+        {status}
+      </Badge>
+    );
+  }
+
   return (
-    <Badge
-      variant="outline"
-      className={cn("capitalize", STATUS_STYLES[status], className)}
-    >
-      {status}
-    </Badge>
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={status}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 1.05 }}
+        transition={{ duration: 0.15 }}
+        className="inline-block"
+      >
+        <Badge
+          variant="outline"
+          className={cn("capitalize", STATUS_STYLES[status], className)}
+        >
+          {status}
+        </Badge>
+      </motion.span>
+    </AnimatePresence>
   );
 }

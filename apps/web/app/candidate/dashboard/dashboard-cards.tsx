@@ -88,7 +88,7 @@ export function RecommendedCard({ jobs }: { jobs: RecommendedJob[] }) {
             <li key={j.id}>
               <Link
                 href={`/candidate/jobs/${j.id}`}
-                className="flex items-center justify-between gap-3 rounded-md border border-border p-3 transition-colors hover:border-primary/50"
+                className="flex items-center justify-between gap-3 rounded-md border border-border p-3 transition-all duration-120 hover:-translate-y-[2px] hover:shadow-md hover:border-primary/50"
               >
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium">

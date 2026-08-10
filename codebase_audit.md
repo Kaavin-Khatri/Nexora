@@ -192,16 +192,19 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
   - topbar.tsx: sticky w/ backdrop-blur; mobile Sheet nav (< lg, closes on navigate); avatar dropdown → Profile + Logout (form POST /logout)
   - app-shell.tsx: Sidebar + Topbar + max-w-6xl content (min-w-0 overflow guard)
   - page-header.tsx: PageHeader(title, description?, action?) — required opener for every page
-- Per-role: app/candidate/layout.tsx + app/recruiter/layout.tsx (thin server components → AppShell)
-- apps/web/components/ui-patterns/ — product-grade building blocks (all future screens compose these):
-  - empty-state.tsx: EmptyState(icon, title, sub?, action?) — product-voice copy, never "No data found"
-  - skeletons.tsx: SkeletonCard · SkeletonTable(rows, cols) · SkeletonForm(fields)
-  - status-badge.tsx: StatusBadge(status) — SINGLE source of status colors (12 statuses across application/job/resume)
-  - data-table.tsx: DataTable(columns: Column<T>[], data, rowKey, loading?, empty) — client sorting (sortValue → aria-sort), loading renders SkeletonTable, empty renders the caller's EmptyState. All lists use this or a card grid — no bespoke tables.
-  - match-score-card.tsx: MatchScoreCard(score, breakdown, defaultExpanded?) — explainability UI expanding to show the three weighted bars + chips.
-  - skill-gap-panel.tsx: SkillGapPanel(matched, missing, totalRequired) — reusable component showing accent chips for matched vs muted-danger chips for missing skills.
-- apps/web/app/styleguide — dev-only token + primitive regression page
 - apps/web/app/page.tsx — minimal token-clean landing (real marketing page in a later phase)
+
+### Animation Inventory (Phase 13.1)
+| Component | Animation | Duration | Properties | Reduced-Motion Gated |
+| :--- | :--- | :--- | :--- | :--- |
+| `Template` (Page) | Initial fade-in | 150ms | `opacity` | Yes |
+| `DataTable` | Skeleton/Content crossfade | 150ms | `opacity` | Yes |
+| `DataTable` | Row entrance stagger | 250ms | `opacity`, `transform (y)` | Yes |
+| `DataTable` | Row optimistic layout shift | var | `transform` (via layout) | Yes |
+| `MotionList` | Grid item stagger | 250ms | `opacity`, `transform (y)` | Yes |
+| `StatusBadge` | Status change crossfade | 150ms | `opacity`, `transform (scale)` | Yes |
+| `ApplicantDetailDrawer` | Drawer open/close spring | 250ms | `transform (x)` | Yes |
+| `JobCard` | Hover lift | 120ms | `transform (y)`, shadow | Yes (CSS transition) |
 
 ## Decisions
 - Region ap-south-1 for lowest latency from India
@@ -231,6 +234,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - ANALYTICS SCOPE CEILING (11.1): v1 analytics are strictly derived from live SQL aggregates on the `applications` and `jobs` tables. No event tables, no tracking pixels, zero new infrastructure. The upgrade path if volume scales beyond live aggregates is a nightly rollup cron or a dedicated event table — but not until needed.
 - MARKETING COPY CLAIMS (12.1): claims-must-be-true rule enforced. No lorem ipsum or vaporware. Every feature claimed on the landing page is backed by the shipped production system (Phase 8-11).
 - REDUCED-MOTION-FIRST POLICY (12.2): GSAP animations always query `prefers-reduced-motion` via `gsap.matchMedia()`. If reduced motion is preferred, zero GSAP initialization runs and elements render in their native, accessible final states. Applied globally.
+- MOTION BUDGET (13.1): All micro-interactions use `framer-motion` gated by `useReducedMotionSafe`. Budget max is 250ms. Only `opacity` and `transform` (`x`, `y`, `scale`) are animated. No layout/dimension properties are animated (aside from `layout` props which use transform under the hood).
 
 ## Security
 - Token validation (app/core/security.py): every protected route verifies the Supabase JWT independently — signature via project JWKS (ES256, cached PyJWKClient; HS256 fallback if SUPABASE_JWT_SECRET set), aud must be 'authenticated', exp enforced, 30s clock-skew leeway. 401 on any failure; require_role() → 403 on role mismatch.
