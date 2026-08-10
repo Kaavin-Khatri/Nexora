@@ -43,3 +43,17 @@ ruff format apps/api         # Python format (writes)
 ## Optional local database
 
 Supabase is the primary database. [docker-compose.yml](docker-compose.yml) provides an optional local pgvector Postgres (port 5433) used only if the Supabase free-tier project is paused — see the comments in that file.
+
+## Production Migrations (Render + Supabase)
+
+Because the API runs on Render's Free Tier (which does not provide a shell to run commands), **database migrations must be executed from your local machine** before deploying code that relies on those schema changes.
+
+**Workflow:**
+1. From your local terminal, ensure your `.env` contains the production `DIRECT_DATABASE_URL` (Port 5432, Session pooler or direct IPv6).
+2. Run the migration locally against the production database:
+   ```powershell
+   cd apps/api
+   .venv\Scripts\Activate.ps1
+   alembic upgrade head
+   ```
+3. Push your code to GitHub. Render will automatically pull the code and deploy the API, which will now use the successfully migrated database schema.
