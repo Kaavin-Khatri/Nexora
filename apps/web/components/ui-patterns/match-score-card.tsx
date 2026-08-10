@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { MatchBreakdown } from "@/app/candidate/dashboard/dashboard-cards";
+export type { MatchBreakdown };
 
 // ---------------------------------------------------------------------------
 // Component bar — one row in the expanded breakdown

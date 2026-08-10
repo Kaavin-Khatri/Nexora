@@ -39,6 +39,8 @@ class Application(Base):
     )
 
     job: Mapped["Job"] = relationship("Job", lazy="joined")
+    candidate: Mapped["Profile"] = relationship("Profile", lazy="joined")
+    resume: Mapped["Resume"] = relationship("Resume", lazy="joined")
 
 
 

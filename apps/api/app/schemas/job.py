@@ -21,6 +21,7 @@ class JobOut(BaseModel):
     required_skills: list[str] | None
     status: str
     created_at: datetime
+    applicants_count: int = 0
 
 
 class JobDetailOut(JobOut):

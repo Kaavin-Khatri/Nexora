@@ -173,6 +173,7 @@ async function RecommendedTab() {
               required_skills: r.required_skills ?? [],
               status: "open",
               created_at: "",
+              applicants_count: 0,
               company: {
                 id: "",
                 name: r.company_name,

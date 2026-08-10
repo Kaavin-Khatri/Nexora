@@ -29,12 +29,14 @@ export function DataTable<T>({
   rowKey,
   loading = false,
   empty,
+  onRowClick,
 }: {
   columns: Column<T>[];
   data: T[];
   rowKey: (row: T) => string;
   loading?: boolean;
   empty: React.ReactNode;
+  onRowClick?: (row: T) => void;
 }) {
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
 
@@ -104,7 +106,11 @@ export function DataTable<T>({
       </TableHeader>
       <TableBody>
         {sorted.map((row) => (
-          <TableRow key={rowKey(row)}>
+          <TableRow 
+            key={rowKey(row)}
+            onClick={onRowClick ? () => onRowClick(row) : undefined}
+            className={onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined}
+          >
             {columns.map((col) => (
               <TableCell key={col.key} className={col.className}>
                 {col.cell(row)}

@@ -801,3 +801,18 @@ appends here + updates the audit after finishing. Never store secret values here
 - Web routes: `/candidate/applications`, Apply feature on `/candidate/jobs/[id]`
 
 ---
+
+### [2026-08-10] — Step 9.2: Recruiter Applicant Table + Detail Drawer
+- **Changes:**
+  - Created API `GET /jobs/{id}/applications` returning applicants sorted by match score.
+  - Added `applicants_count` column_property on `Job` model to avoid N+1 queries.
+  - Updated `JobOut` and frontend `Job` type to include `applicants_count`.
+  - Built `/recruiter/jobs/[id]/applicants` page with `ApplicantsTable`.
+  - Built `ApplicantsTable` using standard `DataTable`, sorting applicants by match score descending.
+  - Enhanced `DataTable` to support `onRowClick`.
+  - Built `ApplicantDetailDrawer` rendering a read-only view of Match Snapshot, Skill Gap, Contact & Summary, Experience, Education, and Skills in a side sheet.
+  - Created `seed_burst.py` to seed 30 applicants to prove UI scale.
+- **Files Created:** `apps/web/app/recruiter/(shell)/jobs/[id]/applicants/page.tsx`, `applicants-table.tsx`, `applicant-detail-drawer.tsx`, `apps/api/scripts/seed_burst.py`
+- **Files Modified:** `apps/api/app/routers/jobs.py`, `apps/api/app/db/models/job.py`, `apps/web/lib/jobs.ts`, `apps/web/components/ui-patterns/data-table.tsx`, `apps/web/components/ui-patterns/match-score-card.tsx`
+- **Reason:** To implement recruiter view of applicants for a job in Phase 9.
+- **Notes:** The drawer is the single applicant workspace. UI scales using Shadcn Data Table.

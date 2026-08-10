@@ -11,6 +11,8 @@ from app.db.models import Job, Profile, RecruiterProfile, Resume
 from app.db.session import get_db
 from app.schemas.job import JobCreate, JobDetailOut, JobListOut, JobOut, JobUpdate
 from app.schemas.match import CandidateMatch, RecommendedJob, RecommendedResponse
+from app.schemas.application import RecruiterApplicationOut
+from app.db.models.application import Application
 from app.services.job_ingest import ingest_job, reembed_job
 from app.services.matching_engine import candidates_for_job, jobs_for_candidate
 from app.services.skill_extractor import normalize_skills
@@ -154,6 +156,26 @@ def job_matches(
     if job.embedding is None:
         return []  # still ingesting — matches appear once embedded
     return [CandidateMatch(**r) for r in candidates_for_job(db, job)]
+
+
+@router.get("/{job_id}/applications", response_model=list[RecruiterApplicationOut])
+def job_applications(
+    job_id: uuid.UUID,
+    user: CurrentUser = Depends(require_role("recruiter")),
+    db: Session = Depends(get_db),
+):
+    job = db.get(Job, job_id)
+    if job is None or job.recruiter_id != user.id:
+        raise HTTPException(404, "Job not found")
+    
+    apps = (
+        db.query(Application)
+        .filter(Application.job_id == job_id)
+        .order_by(Application.match_score.desc().nulls_last())
+        .all()
+    )
+    
+    return apps
 
 
 @router.get("/{job_id}", response_model=JobDetailOut)

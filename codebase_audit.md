@@ -144,7 +144,8 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | GET | /companies/me | bearer + recruiter | caller's company; 404 = not onboarded yet (drives the onboarding redirect) |
 | PATCH | /companies/me | bearer + recruiter | partial update (name/website/size/about), extra=forbid |
 | POST | /jobs | bearer + recruiter | 201; company from recruiter_profiles; required_skills normalized; returns job+company |
-| GET | /jobs/mine | bearer + recruiter | caller's jobs, all statuses (order created_at desc, id desc) |
+| GET | /jobs/mine | bearer + recruiter | caller's jobs, all statuses (order created_at desc, id desc); includes applicants_count |
+| GET | /jobs/{id}/applications | bearer + recruiter owner | returns all applicants for a job, sorted by match_score desc; includes candidate and resume |
 | GET | /jobs | PUBLIC | open jobs only; filters location/job_type/remote/max_experience/q + limit/offset; {items,total,limit,offset}; stable order (no dup across pages) |
 | GET | /jobs/{id} | PUBLIC | open jobs only (closed → 404); includes company |
 | PATCH | /jobs/{id} | bearer + recruiter owner | partial update incl. status open/closed; non-owner → 404; re-normalizes skills |

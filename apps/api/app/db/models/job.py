@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 from app.db.models.company import Company
 from app.db.models.enums import job_status, job_type
+from app.db.models.application import Application
 
 
 class Job(Base):
@@ -52,3 +53,11 @@ class Job(Base):
 
     # joined-load so job listings can serialize company details in one query
     company: Mapped[Company] = relationship(Company, lazy="joined")
+
+    applicants_count: Mapped[int] = sa.orm.column_property(
+        sa.select(sa.func.count(Application.id))
+        .where(Application.job_id == id)
+        .correlate_except(Application)
+        .scalar_subquery(),
+        deferred=True
+    )

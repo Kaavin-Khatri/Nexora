@@ -33,14 +33,24 @@ const COLS: Column<Job>[] = [
   {
     key: "applicants",
     header: "Applicants",
-    // placeholder — real counts land with applications (Phase 9)
-    cell: () => <span className="text-muted-foreground">—</span>,
+    cell: (j) => (
+      <span className="text-muted-foreground">
+        {j.applicants_count ?? 0}
+      </span>
+    ),
+    sortValue: (j) => j.applicants_count ?? 0,
   },
   {
     key: "actions",
     header: "",
     cell: (j) => (
       <span className="inline-flex items-center gap-3">
+        <Link
+          href={`/recruiter/jobs/${j.id}/applicants`}
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          <Users className="size-3.5" aria-hidden /> Applicants
+        </Link>
         <Link
           href={`/recruiter/jobs/${j.id}/matches`}
           className="inline-flex items-center gap-1 text-sm text-primary hover:underline"

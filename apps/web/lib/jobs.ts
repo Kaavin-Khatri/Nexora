@@ -32,6 +32,7 @@ export type Job = JobForm & {
   id: string;
   status: "open" | "closed";
   created_at: string;
+  applicants_count: number;
   company?: {
     id: string;
     name: string;
