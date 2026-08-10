@@ -96,9 +96,9 @@ export function ApplicantDetailDrawer({
             className="w-full sm:max-w-xl overflow-y-auto data-closed:animate-none data-open:animate-none"
           >
             <motion.div
-              initial={!reduceMotion ? { x: "100%" } : false}
-              animate={!reduceMotion ? { x: 0 } : false}
-              exit={!reduceMotion ? { x: "100%" } : false}
+              initial={!reduceMotion ? { x: "100%" } : undefined}
+              animate={!reduceMotion ? { x: 0 } : undefined}
+              exit={!reduceMotion ? { x: "100%" } : undefined}
               transition={{ type: "spring", bounce: 0, duration: 0.25 }}
             >
               <SheetHeader className="mb-4">
