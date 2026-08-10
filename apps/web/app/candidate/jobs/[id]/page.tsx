@@ -3,8 +3,8 @@ import { Building2, MapPin, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { MatchScoreCard } from "@/components/ui-patterns/match-score-card";
 import { SkillGapPanel } from "@/components/ui-patterns/skill-gap-panel";
+import { ApplyButton } from "./apply-button";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api-client";
 import { JOB_TYPE_LABELS, type Job } from "@/lib/jobs";
@@ -49,17 +49,29 @@ export default async function JobDetailPage({
     // Not logged in or not a candidate — no fit section shown
   }
 
+  let hasApplied = false;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      const apps = await api<any[]>("/applications/me", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: "no-store",
+      });
+      hasApplied = apps.some((a) => a.job.id === id);
+    }
+  } catch {
+    // ignore
+  }
+
   return (
     <>
       <PageHeader
         title={job.title}
         description={job.company?.name}
-        action={
-          // Placeholder — applications land in Phase 9.
-          <Button disabled title="Applications open soon">
-            Apply
-          </Button>
-        }
+        action={<ApplyButton jobId={job.id} initialApplied={hasApplied} />}
       />
 
       <div className="grid gap-4 lg:grid-cols-3">

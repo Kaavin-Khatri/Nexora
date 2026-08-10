@@ -157,6 +157,8 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | POST | /resumes/{id}/reparse | bearer + candidate owner | re-runs pipeline on stored file (owner-only, 404 else) |
 | PATCH | /resumes/{id}/skills | bearer + candidate owner | replace skills list (trim+dedupe); owner-only, 404 else |
 | GET | /resumes/{id}/ats-score | bearer + candidate owner | {status, score, breakdown}; owner-only, 404 else |
+| POST | /applications | bearer + candidate | takes {job_id}, computes and snapshots match_score + match_breakdown at apply time; 409 duplicate guard, 422 if no parsed resume exists |
+| GET | /applications/me | bearer + candidate | candidate's applications, eager-loads job and company details |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
@@ -214,6 +216,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - HYBRID RERANK (8.2): why hybrid > pure cosine, WITH the constructed counter-example: Job requires Python+FastAPI+PostgreSQL+Docker+Redis. Candidate A has all 5 (cosine 0.65) → hybrid 0.825. Candidate B has only Python (cosine 0.88) → hybrid 0.66. Pure cosine picks B; hybrid picks A because skill_overlap 1.0 vs 0.2 dominates the 35% weight. Substance over style. Pinned by test_matching_engine.py::test_a_outranks_b_proving_pair.
 - MATCH WEIGHTS: MATCH_W_SIM=0.5 / MATCH_W_SKILL=0.35 / MATCH_W_EXP=0.15 (env-tunable via config.py, echoed in every breakdown for honesty). Redistribution: empty required_skills → skill weight moves to semantic (0.85/0.0/0.15) with an explicit note in the breakdown.
 - EXPLAINABILITY UI (8.3): breakdown is render-only on the client, never recomputed. Tier thresholds (75/55) live purely in `lib/match-constants.ts`.
+- APPLY SNAPSHOT (9.1): no live re-scoring of applications. The match score and breakdown are calculated using the candidate's current resume exactly when `POST /applications` occurs, and permanently stored on the `Application` record.
 
 ## Security
 - Token validation (app/core/security.py): every protected route verifies the Supabase JWT independently — signature via project JWKS (ES256, cached PyJWKClient; HS256 fallback if SUPABASE_JWT_SECRET set), aud must be 'authenticated', exp enforced, 30s clock-skew leeway. 401 on any failure; require_role() → 403 on role mismatch.

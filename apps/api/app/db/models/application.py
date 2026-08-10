@@ -5,7 +5,7 @@ from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.models.enums import application_status
@@ -37,6 +37,9 @@ class Application(Base):
     applied_at: Mapped[datetime] = mapped_column(
         sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()
     )
+
+    job: Mapped["Job"] = relationship("Job", lazy="joined")
+
 
 
 class InterviewQuestion(Base):

@@ -777,3 +777,27 @@ appends here + updates the audit after finishing. Never store secret values here
 - Rule for UI match values: `Math.round(score * 100)` is the canonical UI display percentage.
 
 ---
+
+## Step 9.1 — Apply Flow + Candidate Tracking
+**Timestamp:** 2026-08-10T11:51:00Z
+**Status:** COMPLETE
+
+### What was done
+- Added `ApplicationCreate`, `ApplicationOut`, and `CandidateApplicationOut` schemas.
+- Created `POST /applications` to handle job applications, returning 404 for missing/closed jobs, 422 if the candidate lacks a parsed resume, and 409 for duplicate applications. 
+- Integrated match scoring at the exact moment of application. `POST /applications` queries `matching_engine.py`'s `score_pair` and stores the resulting `match_score` and `match_breakdown` on the `Application` record.
+- Created `GET /applications/me` to list candidate applications, eagerly joining `Job` and `Company`.
+- Created `<ApplyButton>` client component for the job detail page, featuring a loading state and graceful toast error handling for duplicates (409) and missing resumes (422), automatically routing the user to `/candidate/resume` when a resume is needed.
+- Created Candidate Applications page (`/candidate/applications`) utilizing `MatchScoreCard` and `StatusBadge` to display snapshotted fit details and current status, alongside an honest empty state.
+- Set up bidirectional SQLAlchemy relationship `Application.job`.
+
+### Decisions
+- Decision: snapshot-at-apply. The match score and breakdown are calculated at the moment of application and stored permanently on the `Application` record. This ensures fairness and stable recruiter views—later resume edits do not retroactively change a submitted application.
+- Decision: Withdraw-application DEFERRED. 
+
+### Key values for future steps
+- API Endpoints: `POST /applications`, `GET /applications/me`
+- DB Models: `Application` relation to `Job` is `lazy="joined"` for fast fetching.
+- Web routes: `/candidate/applications`, Apply feature on `/candidate/jobs/[id]`
+
+---
