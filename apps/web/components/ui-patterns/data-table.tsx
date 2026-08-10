@@ -60,9 +60,9 @@ export function DataTable<T>({
       {loading ? (
         <motion.div
           key="loading"
-          initial={!reduceMotion ? { opacity: 0 } : false}
-          animate={!reduceMotion ? { opacity: 1 } : false}
-          exit={!reduceMotion ? { opacity: 0 } : false}
+          initial={!reduceMotion ? { opacity: 0 } : undefined}
+          animate={!reduceMotion ? { opacity: 1 } : undefined}
+          exit={!reduceMotion ? { opacity: 0 } : undefined}
           transition={{ duration: 0.15 }}
         >
           <SkeletonTable rows={5} cols={columns.length} />
@@ -70,9 +70,9 @@ export function DataTable<T>({
       ) : data.length === 0 ? (
         <motion.div
           key="empty"
-          initial={!reduceMotion ? { opacity: 0 } : false}
-          animate={!reduceMotion ? { opacity: 1 } : false}
-          exit={!reduceMotion ? { opacity: 0 } : false}
+          initial={!reduceMotion ? { opacity: 0 } : undefined}
+          animate={!reduceMotion ? { opacity: 1 } : undefined}
+          exit={!reduceMotion ? { opacity: 0 } : undefined}
           transition={{ duration: 0.15 }}
         >
           {empty}
@@ -80,9 +80,9 @@ export function DataTable<T>({
       ) : (
         <motion.div
           key="table"
-          initial={!reduceMotion ? { opacity: 0 } : false}
-          animate={!reduceMotion ? { opacity: 1 } : false}
-          exit={!reduceMotion ? { opacity: 0 } : false}
+          initial={!reduceMotion ? { opacity: 0 } : undefined}
+          animate={!reduceMotion ? { opacity: 1 } : undefined}
+          exit={!reduceMotion ? { opacity: 0 } : undefined}
           transition={{ duration: 0.15 }}
         >
           <Table>
@@ -135,8 +135,8 @@ export function DataTable<T>({
       </TableHeader>
       <motion.tbody
         className="[&_tr:last-child]:border-0"
-        initial={!reduceMotion ? "hidden" : false}
-        animate={!reduceMotion ? "visible" : false}
+        initial={!reduceMotion ? "hidden" : undefined}
+        animate={!reduceMotion ? "visible" : undefined}
         variants={{
           visible: { transition: { staggerChildren: 0.05 } }
         }}
@@ -144,7 +144,7 @@ export function DataTable<T>({
         <AnimatePresence mode="popLayout">
           {sorted.map((row) => (
             <motion.tr
-              layout={!reduceMotion ? "position" : false}
+              layout={!reduceMotion ? "position" : undefined}
               key={rowKey(row)}
               variants={{
                 hidden: { opacity: 0, y: 10 },
