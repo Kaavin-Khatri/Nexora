@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import type { MatchBreakdown } from "@/components/ui-patterns/match-score-card";
 import { ApplicantDetailDrawer } from "./applicant-detail-drawer";
 import { getMatchTier } from "@/lib/match-constants";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { api } from "@/lib/api-client";
+import { createClient } from "@/lib/supabase/client";
 
 export type Applicant = {
   id: string;
@@ -91,14 +95,83 @@ const COLS: Column<Applicant>[] = [
 
 export function ApplicantsTable({ applicants }: { applicants: Applicant[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [localApplicants, setLocalApplicants] = useState(applicants);
 
-  const selectedApplicant = applicants.find((a) => a.id === selectedId) ?? null;
+  const selectedApplicant = localApplicants.find((a) => a.id === selectedId) ?? null;
+
+  async function updateStatus(appId: string, newStatus: string) {
+    const original = [...localApplicants];
+    
+    // Optimistic update
+    setLocalApplicants((prev) =>
+      prev.map((a) => (a.id === appId ? { ...a, status: newStatus } : a))
+    );
+
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
+      await api(`/applications/${appId}/status`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      toast.success(`Status updated to ${newStatus}`);
+    } catch (e: any) {
+      setLocalApplicants(original);
+      toast.error(e.message || "Failed to update status");
+    }
+  }
+
+  const columnsWithActions = [
+    ...COLS,
+    {
+      key: "actions",
+      header: "",
+      cell: (a: Applicant) => {
+        const canShortlist = ["applied", "screening"].includes(a.status);
+        const canReject = !["rejected", "hired"].includes(a.status);
+        if (!canShortlist && !canReject) return null;
+
+        return (
+          <div
+            className="flex items-center gap-2 justify-end"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {canShortlist && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => updateStatus(a.id, "shortlisted")}
+              >
+                Shortlist
+              </Button>
+            )}
+            {canReject && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-danger"
+                onClick={() => updateStatus(a.id, "rejected")}
+              >
+                Reject
+              </Button>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
 
   return (
     <>
       <DataTable
-        columns={COLS}
-        data={applicants}
+        columns={columnsWithActions}
+        data={localApplicants}
         rowKey={(a) => a.id}
         onRowClick={(a) => setSelectedId(a.id)}
         empty={
@@ -116,6 +189,7 @@ export function ApplicantsTable({ applicants }: { applicants: Applicant[] }) {
         onOpenChange={(open) => {
           if (!open) setSelectedId(null);
         }}
+        onUpdateStatus={updateStatus}
       />
     </>
   );

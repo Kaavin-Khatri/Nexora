@@ -816,3 +816,25 @@ appends here + updates the audit after finishing. Never store secret values here
 - **Files Modified:** `apps/api/app/routers/jobs.py`, `apps/api/app/db/models/job.py`, `apps/web/lib/jobs.ts`, `apps/web/components/ui-patterns/data-table.tsx`, `apps/web/components/ui-patterns/match-score-card.tsx`
 - **Reason:** To implement recruiter view of applicants for a job in Phase 9.
 - **Notes:** The drawer is the single applicant workspace. UI scales using Shadcn Data Table.
+
+---
+
+## Step 9.3 — Status Pipeline Actions
+**Timestamp:** 2026-08-10T12:28:00Z
+**Status:** COMPLETE
+
+### What was done
+- API: Added ApplicationStatusUpdate schema. Added PATCH /applications/{id}/status route in pplications.py. It enforces transition rules: applied -> screening/shortlisted/rejected, screening -> shortlisted/interview/rejected, shortlisted -> interview/rejected, interview -> hired/rejected. Hired/Rejected are terminal. Verifies job ownership. Returns 422 for illegal transitions.
+- Web ApplicantsTable: Maintains local state for optimistic updates. Added updateStatus method that reverts on failure and triggers an error toast. Added quick-action buttons ("Shortlist" and "Reject") rendered conditionally based on .status.
+- Web ApplicantDetailDrawer: Added onUpdateStatus prop and an Action Bar at the top showing buttons for all legal next states (read from TRANSITION_MAP).
+- Web Candidate: CandidateApplicationsPage already reflects pp.status because cache: "no-store" is set, so it fetches live state and renders it in the StatusBadge.
+- QA done manually: API validation blocks illegal updates, UI handles optimistic revert and renders only available transitions based on TRANSITION_MAP.
+- Commit: feat(apps): status transitions
+
+### Decisions
+- Reused API transition map natively in the frontend to avoid an extra API call for "allowed next states" – server is law, client is UX. 
+- Using optimistic updates: if PATCH fails, local state is rolled back and an error toast is fired, giving instant feedback to the recruiter.
+- Kept the "Shortlist" button as outline and "Reject" as ghost text-danger on the Table to minimize visual noise while keeping the actions accessible.
+
+### Key values for future steps
+- Next step should wrap up Phase 9 or move to Phase 10 (Interviews).

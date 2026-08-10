@@ -160,6 +160,7 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | GET | /resumes/{id}/ats-score | bearer + candidate owner | {status, score, breakdown}; owner-only, 404 else |
 | POST | /applications | bearer + candidate | takes {job_id}, computes and snapshots match_score + match_breakdown at apply time; 409 duplicate guard, 422 if no parsed resume exists |
 | GET | /applications/me | bearer + candidate | candidate's applications, eager-loads job and company details |
+| PATCH | /applications/{id}/status | bearer + recruiter owner | status transitions with server-enforced rules |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 

@@ -8,6 +8,10 @@ class ApplicationCreate(BaseModel):
     job_id: uuid.UUID
 
 
+class ApplicationStatusUpdate(BaseModel):
+    status: str
+
+
 class ApplicationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

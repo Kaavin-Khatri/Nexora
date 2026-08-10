@@ -22,6 +22,16 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge, type Status } from "@/components/ui-patterns/status-badge";
 import type { Applicant } from "./applicants-table";
 import { getMatchTier } from "@/lib/match-constants";
+import { Button } from "@/components/ui/button";
+
+const TRANSITION_MAP: Record<string, string[]> = {
+  applied: ["screening", "shortlisted", "rejected"],
+  screening: ["shortlisted", "interview", "rejected"],
+  shortlisted: ["interview", "rejected"],
+  interview: ["hired", "rejected"],
+  hired: [],
+  rejected: [],
+};
 
 function Section({
   icon: Icon,
@@ -53,10 +63,12 @@ export function ApplicantDetailDrawer({
   applicant,
   open,
   onOpenChange,
+  onUpdateStatus,
 }: {
   applicant: Applicant | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onUpdateStatus?: (appId: string, status: string) => void;
 }) {
   if (!applicant) {
     return <Sheet open={open} onOpenChange={onOpenChange} />;
@@ -65,6 +77,8 @@ export function ApplicantDetailDrawer({
   const parsed = applicant.resume.parsed_json;
   const c = parsed?.contact || {};
   const hasContact = c.name || c.email || c.phone || c.location;
+
+  const allowedNext = TRANSITION_MAP[applicant.status] || [];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -94,6 +108,22 @@ export function ApplicantDetailDrawer({
               </div>
             )}
           </div>
+
+          {allowedNext.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
+              {allowedNext.map((nextStatus) => (
+                <Button
+                  key={nextStatus}
+                  variant={nextStatus === "rejected" ? "outline" : "default"}
+                  className={nextStatus === "rejected" ? "text-danger hover:text-danger hover:bg-danger/10" : ""}
+                  onClick={() => onUpdateStatus?.(applicant.id, nextStatus)}
+                  size="sm"
+                >
+                  Move to {nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1)}
+                </Button>
+              ))}
+            </div>
+          )}
         </SheetHeader>
 
         <div className="space-y-6 pb-12">
