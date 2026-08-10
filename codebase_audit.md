@@ -18,7 +18,7 @@ history lives in memory.md. Never store secret values here.
 ## Services
 - Supabase (Postgres + pgvector + Auth + Storage): project ref `vduadmxexdgkhmkxloyd`, region ap-south-1 (Mumbai), dashboard https://supabase.com/dashboard/project/vduadmxexdgkhmkxloyd — pgvector enabled
 - Supabase Auth: email/password provider, role captured at signup in user_metadata.role; **Confirm email OFF for dev (LAUNCH BLOCKER — re-enable in 15.1)**; web uses @supabase/ssr cookie-based sessions
-- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL. ALL Groq calls go through app/services/llm_client.py (the single gateway — no other file imports groq). Call inventory: #1 resume structuring (resume_parser), #2 skill mining (skill_extractor), #3 job structuring (job_ingest).
+- Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL. ALL Groq calls go through app/services/llm_client.py (the single gateway — no other file imports groq). Call inventory (FINAL 5): #1 resume structuring (resume_parser), #2 skill mining (skill_extractor), #3 job structuring (job_ingest), #4 gap analysis (cached, Phase 10), #5 interview questions (on-demand, Phase 10).
 - Supabase Storage: private bucket `resumes` — all access server-mediated via the service-role key (app/core/storage.py); files at {user_id}/{uuid}.{ext}; no public policies
 - Vercel: account ready, hosts apps/web (deploy in Phase 14.2)
 - Render: account ready, hosts apps/api (deploy in Phase 14.1)
@@ -163,6 +163,8 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | POST | /applications | bearer + candidate | takes {job_id}, computes and snapshots match_score + match_breakdown at apply time; 409 duplicate guard, 422 if no parsed resume exists |
 | GET | /applications/me | bearer + candidate | candidate's applications, eager-loads job and company details |
 | PATCH | /applications/{id}/status | bearer + recruiter owner | status transitions with server-enforced rules |
+| POST | /applications/{id}/interview-questions | bearer + recruiter owner | Generates 8 targeted questions (3 tech, 3 missing, 2 behavioral) via Groq based on resume, job, and gap data. Output is persisted to `interview_questions`. Supports ?regenerate=true to wipe and replace. |
+| GET | /applications/{id}/interview-questions | bearer + (recruiter owner OR candidate applicant) | Fetches the generated interview prep questions. Candidates can see their own to prep for the interview. |
 
 CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py settings; allow_credentials on; default origin http://localhost:3000.
 
@@ -237,6 +239,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - ATS SCORER (app/services/ats_scorer.py): DETERMINISTIC + explainable, NO LLM (rules-not-vibes). Pure fn score_resume(parsed, raw_text) → total (0–100) + per-check breakdown; total = sum of rounded parts. Weights: contact 15 · sections 20 · quantified-bullets 20 · skills-band(8–20) 15 · length-band(300–900w) 10 · extraction-formatting 10 · action-verbs 10. Determinism pinned by tests/test_ats_scorer.py (golden totals). ats_breakdown JSONB = {total, checks:[{name,score,max,detail}]}.
 - SKILL EXTRACTION + NORMALIZATION (app/services/skill_extractor.py): resume.skills = normalize_skills(union of parsed.skills + Groq-mined bullet skills). normalize_skills(db, names) is the SINGLE normalizer shared by resume AND job pipelines (Phase 7.3 reuses it) — trim → ALIASES map → case-insensitive taxonomy match → unmatched INSERT flagged=uncategorized. ALIASES dict is the one place aliases grow (case variants need no entry).
 - **Cache-First LLM Pattern**: Every repeatable LLM output (like gap analysis) is cached in a dedicated table (e.g. `gap_analyses`). Cache hit = zero LLM calls. Cache busted on state change (e.g., re-parse resume).
+- **On-Demand LLM Pattern (Interview Questions)**: Interview questions are ONLY generated when explicitly requested via `POST /applications/{id}/interview-questions` (token discipline). They are persisted indefinitely unless `?regenerate=true` is explicitly passed.
 - EMBEDDINGS (app/services/embedding_service.py): BAAI/bge-small-en-v1.5, 384-dim, ONNX via fastembed (no PyTorch, ~220MB warm RSS < 512MB). Lazy singleton warmed at FastAPI startup (lifespan); /health.model_loaded reports readiness. SYMMETRIC embed-text builders, side by side in the file — change both or neither:
   - resume: "{summary or name}. {years} years experience. Skills: {csv}. {up to 5 quantified-first bullets}"
   - job:    "{title}. Requires {min_experience}+ years. Skills: {csv}. {up to 5 responsibilities}"

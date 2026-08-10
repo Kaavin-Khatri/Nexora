@@ -860,3 +860,19 @@ appends here + updates the audit after finishing. Never store secret values here
 - Cache key: \(resume_id, job_id)\
 - Cache invalidation: Drops rows on re-parse.
 - Groq call inventory: 4 (Phase 8 ATS, Matcher, Explainability, and now Gap Analysis). All 4 use \llm_client\.
+
+## Step 10.2 — Interview Question Generation
+**Timestamp:** 2026-08-10T18:09:40Z
+**Status:** COMPLETE
+
+### What was done
+- Added InterviewQuestion model, schema, and API endpoints for POST and GET.
+- Created UI components in Web for both Recruiter (ApplicantDetailDrawer tab) and Candidate (CandidateApplicationsPage prep section).
+
+### Decisions
+- Candidate-visible questions (prep feature) is a deliberate product choice to increase platform value.
+- Questions are grouped into 3 technical, 3 missing skill probes, and 2 behavioral.
+- Output is regenerated and completely replaces existing ones if regenerate=true.
+
+### Key values for future steps
+- Groq call inventory: 5 — final count for v1.

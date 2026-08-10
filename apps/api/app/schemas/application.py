@@ -76,3 +76,13 @@ class RecruiterApplicationOut(BaseModel):
     match_score: float | None
     match_breakdown: MatchBreakdown | None
     applied_at: datetime
+
+
+class InterviewQuestionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    question: str
+    category: str | None
+    targets_skill: str | None
+    created_at: datetime

@@ -6,8 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from app.core.security import CurrentUser, require_role
 from app.db.models import Application, Job, Profile, Resume
 from app.db.session import get_db
-from app.schemas.application import ApplicationCreate, ApplicationOut, CandidateApplicationOut, ApplicationStatusUpdate
+from app.schemas.application import ApplicationCreate, ApplicationOut, CandidateApplicationOut, ApplicationStatusUpdate, InterviewQuestionOut
 from app.services.matching_engine import _vec, score_pair
+from app.services.interview_questions import generate_questions_for_application
+from app.db.models import InterviewQuestion
 import uuid
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -130,3 +132,64 @@ def update_status(
     db.commit()
     db.refresh(app)
     return app
+
+
+@router.post("/{id}/interview-questions", response_model=list[InterviewQuestionOut])
+def generate_interview_questions(
+    id: uuid.UUID,
+    regenerate: bool = False,
+    user: CurrentUser = Depends(require_role("recruiter")),
+    db: Session = Depends(get_db),
+):
+    app = db.get(Application, id)
+    if not app:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
+    job = db.get(Job, app.job_id)
+    if not job or job.recruiter_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
+    
+    # Check if they exist
+    existing = db.query(InterviewQuestion).filter(InterviewQuestion.application_id == app.id).all()
+    if existing and not regenerate:
+        return existing
+    
+    if regenerate and existing:
+        db.query(InterviewQuestion).filter(InterviewQuestion.application_id == app.id).delete()
+        db.commit()
+
+    return generate_questions_for_application(db, app)
+
+
+@router.get("/{id}/interview-questions", response_model=list[InterviewQuestionOut])
+def get_interview_questions(
+    id: uuid.UUID,
+    user: CurrentUser = Depends(),
+    db: Session = Depends(get_db),
+):
+    app = db.get(Application, id)
+    if not app:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
+    
+    # Either the recruiter owner or the applicant themselves
+    if user.role == "recruiter":
+        job = db.get(Job, app.job_id)
+        if not job or job.recruiter_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+            )
+    elif user.role == "candidate":
+        if app.candidate_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+            )
+    else:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    return db.query(InterviewQuestion).filter(InterviewQuestion.application_id == app.id).all()
+

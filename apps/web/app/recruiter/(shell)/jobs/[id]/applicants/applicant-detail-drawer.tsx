@@ -23,6 +23,8 @@ import { StatusBadge, type Status } from "@/components/ui-patterns/status-badge"
 import type { Applicant } from "./applicants-table";
 import { getMatchTier } from "@/lib/match-constants";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InterviewQuestions } from "./interview-questions";
 
 const TRANSITION_MAP: Record<string, string[]> = {
   applied: ["screening", "shortlisted", "rejected"],
@@ -126,8 +128,24 @@ export function ApplicantDetailDrawer({
           )}
         </SheetHeader>
 
-        <div className="space-y-6 pb-12">
-          {applicant.match_score !== null && applicant.match_breakdown && (
+        <Tabs defaultValue="overview" className="mt-6">
+          <TabsList className="w-full justify-start border-b rounded-none px-6 h-auto bg-transparent p-0">
+            <TabsTrigger 
+              value="overview" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+            >
+              Overview
+            </TabsTrigger>
+            <TabsTrigger 
+              value="questions" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-2"
+            >
+              Questions
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="px-6 py-4 space-y-6 pb-12 mt-0">
+            {applicant.match_score !== null && applicant.match_breakdown && (
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
                 Match Snapshot
@@ -227,7 +245,12 @@ export function ApplicantDetailDrawer({
               </ul>
             )}
           </Section>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="questions" className="px-6 mt-0">
+            <InterviewQuestions applicationId={applicant.id} />
+          </TabsContent>
+        </Tabs>
       </SheetContent>
     </Sheet>
   );

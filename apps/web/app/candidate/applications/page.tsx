@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { api } from "@/lib/api-client";
 import { createClient } from "@/lib/supabase/server";
+import { InterviewQuestions } from "@/app/recruiter/(shell)/jobs/[id]/applicants/interview-questions";
 
 export default async function CandidateApplicationsPage() {
   const supabase = await createClient();
@@ -98,6 +99,13 @@ export default async function CandidateApplicationsPage() {
                   />
                 </div>
               )}
+              
+              <div className="mt-6 border-t pt-4 max-w-2xl">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+                  Interview Prep
+                </p>
+                <InterviewQuestions applicationId={app.id} isCandidate />
+              </div>
             </CardContent>
           </Card>
         ))}
