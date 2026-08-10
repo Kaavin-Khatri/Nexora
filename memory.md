@@ -876,3 +876,19 @@ appends here + updates the audit after finishing. Never store secret values here
 
 ### Key values for future steps
 - Groq call inventory: 5 — final count for v1.
+
+## Step 11.1 — Recruiter Analytics Cards + Funnel
+**Timestamp:** 2026-08-10T18:17:17Z
+**Status:** COMPLETE
+
+### What was done
+- Created API GET /companies/me/analytics returning total open jobs, total applicants, per-job applicant counts, status funnel counts, avg match_score, and a 14-day daily-applications series using purely SQL aggregates on existing tables.
+- Implemented Web client component AnalyticsDashboard displaying 4 stat cards, a recharts bar/funnel, a 14-day sparkline, and a per-job mini-list.
+- Implemented EmptyState when total_open_jobs and total_applicants are 0.
+
+### Decisions
+- Analytics are purely derived from existing SQL tables (jobs and applications). Zero event tracking or new tables were added (scope ceiling constraint for v1).
+- 14-day time series aggregation is bucketed in Python against a bounded SQL query to avoid postgres-specific 'generate_series' calls, keeping it dialect-agnostic and simple.
+
+### Key values for future steps
+- Metric Definitions: Total Applicants = sum of all applications to the company's jobs. Avg Match = SQL avg(match_score) over all applications. Funnel = SQL count grouped by status.

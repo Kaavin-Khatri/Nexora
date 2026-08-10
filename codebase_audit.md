@@ -145,6 +145,7 @@ Single source of truth for schema questions. Alembic head: 6a7169635a41. Models 
 | POST | /companies | bearer + recruiter | 201 creates company + links caller (recruiter_profiles); 409 if already linked |
 | GET | /companies/me | bearer + recruiter | caller's company; 404 = not onboarded yet (drives the onboarding redirect) |
 | PATCH | /companies/me | bearer + recruiter | partial update (name/website/size/about), extra=forbid |
+| GET | /companies/me/analytics | bearer + recruiter | single endpoint returning aggregated counts, status funnel, avg match, and daily applications series over existing tables |
 | POST | /jobs | bearer + recruiter | 201; company from recruiter_profiles; required_skills normalized; returns job+company |
 | GET | /jobs/mine | bearer + recruiter | caller's jobs, all statuses (order created_at desc, id desc); includes applicants_count |
 | GET | /jobs/{id}/applications | bearer + recruiter owner | returns all applicants for a job, sorted by match_score desc; includes candidate and resume |
@@ -223,6 +224,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - MATCH WEIGHTS: MATCH_W_SIM=0.5 / MATCH_W_SKILL=0.35 / MATCH_W_EXP=0.15 (env-tunable via config.py, echoed in every breakdown for honesty). Redistribution: empty required_skills → skill weight moves to semantic (0.85/0.0/0.15) with an explicit note in the breakdown.
 - EXPLAINABILITY UI (8.3): breakdown is render-only on the client, never recomputed. Tier thresholds (75/55) live purely in `lib/match-constants.ts`.
 - APPLY SNAPSHOT (9.1): no live re-scoring of applications. The match score and breakdown are calculated using the candidate's current resume exactly when `POST /applications` occurs, and permanently stored on the `Application` record.
+- ANALYTICS SCOPE CEILING (11.1): v1 analytics are strictly derived from live SQL aggregates on the `applications` and `jobs` tables. No event tables, no tracking pixels, zero new infrastructure. The upgrade path if volume scales beyond live aggregates is a nightly rollup cron or a dedicated event table — but not until needed.
 
 ## Security
 - Token validation (app/core/security.py): every protected route verifies the Supabase JWT independently — signature via project JWKS (ES256, cached PyJWKClient; HS256 fallback if SUPABASE_JWT_SECRET set), aud must be 'authenticated', exp enforced, 30s clock-skew leeway. 401 on any failure; require_role() → 403 on role mismatch.

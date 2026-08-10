@@ -1,36 +1,31 @@
-// Placeholder content — real recruiter dashboard arrives in a later phase.
 import { PageHeader } from "@/components/layout/page-header";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
+import { api } from "@/lib/api-client";
+import { AnalyticsDashboard, AnalyticsData } from "./analytics-dashboard";
 
 export default async function RecruiterDashboard() {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const claims = data?.claims;
-  const name = claims?.user_metadata?.full_name ?? claims?.email ?? "there";
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return null;
+
+  const claims = await supabase.auth.getClaims();
+  const name = claims.data?.claims?.user_metadata?.full_name ?? claims.data?.claims?.email ?? "there";
+
+  const analytics = await api<AnalyticsData>("/companies/me/analytics", {
+    headers: { Authorization: `Bearer ${data.session.access_token}` },
+    cache: "no-store",
+  }).catch(() => null);
 
   return (
     <>
       <PageHeader title="Dashboard" description={`Welcome back, ${name}`} />
-      <Card className="max-w-xl">
-        <CardHeader>
-          <CardTitle>Get started</CardTitle>
-          <CardDescription>
-            Set up your company profile and post your first job to start
-            receiving ranked, explainable candidate matches.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Job posting lands in a coming phase — your dashboard will fill in as
-          features ship.
-        </CardContent>
-      </Card>
+      {analytics ? (
+        <AnalyticsDashboard data={analytics} />
+      ) : (
+        <div className="p-8 border border-dashed rounded-lg text-center text-muted-foreground mt-4">
+          <p>Failed to load analytics data or you haven&apos;t onboarded yet.</p>
+        </div>
+      )}
     </>
   );
 }
