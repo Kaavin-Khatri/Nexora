@@ -838,3 +838,25 @@ appends here + updates the audit after finishing. Never store secret values here
 
 ### Key values for future steps
 - Next step should wrap up Phase 9 or move to Phase 10 (Interviews).
+
+## Step 10.1 — Skill Gap Analysis + Narrative Suggestions
+**Timestamp:** 2026-08-10T18:03:32Z
+**Status:** COMPLETE
+
+### What was done
+- Database Schema: Added \gap_analyses\ table with \esume_id\ and \job_id\ unique pair constraint.
+- API: Added \GET /resumes/latest/gap-analysis?job_id=\ to generate a 1-line gap analysis using Groq per missing skill.
+- API caching: Caches results in \gap_analyses\ table. Cache invalidation on resume re-parse.
+- Web: \SkillGapPanel\ updated to optionally receive and display \gapNarratives\ cleanly under the missing skills list. It also handles the 0-gaps edge case with a positive message ("You cover every listed skill. Great match!").
+- Security/Guardrails: Gap narratives are strictly limited to provided skills with a hard prompt constraint to avoid hallucinated requirements.
+
+### Decisions
+- Added an independent service \gap_analysis.py\ leveraging existing \skill_terms\ matcher logic.
+- Kept the missing skills list tightly matched against \skill_terms\ to ensure exactly 1:1 parity with the Phase 8 \SkillGapPanel\.
+- All LLM responses are cached indefinitely until a new resume is processed, ensuring the UI remains free for the user on return visits and keeping API costs zero.
+- Used \chat_json\ helper for strictly typed Pydantic LLM output extraction to keep responses reliable.
+
+### Key values for future steps
+- Cache key: \(resume_id, job_id)\
+- Cache invalidation: Drops rows on re-parse.
+- Groq call inventory: 4 (Phase 8 ATS, Matcher, Explainability, and now Gap Analysis). All 4 use \llm_client\.

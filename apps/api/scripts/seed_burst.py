@@ -8,7 +8,6 @@ from decimal import Decimal
 # Add the parent directory to sys.path so we can import 'app'
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.db.models import Profile, Resume, Job, Application
 

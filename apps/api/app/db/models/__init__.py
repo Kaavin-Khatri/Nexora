@@ -4,6 +4,7 @@ from app.db.models.job import Job
 from app.db.models.profile import Profile
 from app.db.models.resume import Resume
 from app.db.models.skill import Skill
+from app.db.models.gap_analysis import GapAnalysis
 
 __all__ = [
     "Application",
@@ -14,4 +15,5 @@ __all__ = [
     "RecruiterProfile",
     "Resume",
     "Skill",
+    "GapAnalysis",
 ]

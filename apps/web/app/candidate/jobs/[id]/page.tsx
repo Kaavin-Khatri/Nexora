@@ -49,6 +49,25 @@ export default async function JobDetailPage({
     // Not logged in or not a candidate — no fit section shown
   }
 
+  let gapNarratives: Record<string, { why_it_matters: string; how_to_close: string }> | undefined = undefined;
+  if (matchData) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const gapData = await api<{ narratives: Record<string, { why_it_matters: string; how_to_close: string }> }>(`/resumes/latest/gap-analysis?job_id=${id}`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: "no-store",
+        });
+        gapNarratives = gapData.narratives;
+      }
+    } catch {
+      // Gap analysis missing, handled gracefully
+    }
+  }
+
   let hasApplied = false;
   try {
     const supabase = await createClient();
@@ -140,6 +159,7 @@ export default async function JobDetailPage({
                       matchData.breakdown.matched.length +
                       matchData.breakdown.missing.length
                     }
+                    gapNarratives={gapNarratives}
                   />
                 ) : (
                   <div className="flex flex-wrap gap-2">

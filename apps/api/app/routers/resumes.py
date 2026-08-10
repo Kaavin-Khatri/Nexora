@@ -10,6 +10,8 @@ from app.db.models import Resume
 from app.db.session import get_db
 from app.schemas.resume import ResumeOut, SkillsUpdate
 from app.workers.tasks import parse_resume
+from app.db.models import Job, GapAnalysis
+from app.services.gap_analysis import generate_gap_analysis
 
 
 def _owned_or_404(db: Session, resume_id: uuid.UUID, user_id: uuid.UUID) -> Resume:
@@ -75,6 +77,26 @@ def latest(
         .limit(1)
     )
 
+@router.get("/latest/gap-analysis")
+def latest_gap_analysis(
+    job_id: uuid.UUID,
+    user: CurrentUser = Depends(require_role("candidate")),
+    db: Session = Depends(get_db),
+):
+    resume = db.scalar(
+        select(Resume)
+        .where(Resume.candidate_id == user.id)
+        .order_by(Resume.created_at.desc())
+        .limit(1)
+    )
+    if not resume:
+        raise HTTPException(404, "No resume found")
+    
+    job = db.get(Job, job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+        
+    return generate_gap_analysis(db, resume, job)
 
 @router.get("/{resume_id}", response_model=ResumeOut)
 def get_one(
@@ -95,6 +117,7 @@ def reparse(
     resume = _owned_or_404(db, resume_id, user.id)
     resume.status = "uploaded"  # parse_resume flips to parsing → parsed/failed
     resume.error_message = None
+    db.query(GapAnalysis).filter(GapAnalysis.resume_id == resume_id).delete()
     db.commit()
     background_tasks.add_task(parse_resume, resume_id)
     db.refresh(resume)

@@ -21,7 +21,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from app.core.config import settings, sqlalchemy_url  # noqa: E402
-from app.db.models import Company, Job, Profile, RecruiterProfile, Resume, Skill  # noqa: E402
+from app.db.models import Company, Job, Profile, RecruiterProfile, Skill  # noqa: E402
 
 NS = uuid.uuid5(uuid.NAMESPACE_DNS, "seed.nexora")
 

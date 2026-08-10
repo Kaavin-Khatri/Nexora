@@ -12,15 +12,17 @@ export function SkillGapPanel({
   matched,
   missing,
   totalRequired,
+  gapNarratives,
 }: {
   matched: string[];
   missing: string[];
   totalRequired: number;
+  gapNarratives?: Record<string, { why_it_matters: string; how_to_close: string }>;
 }) {
   if (totalRequired === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        This role doesn't list specific required skills.
+        This role doesn&apos;t list specific required skills.
       </p>
     );
   }
@@ -68,7 +70,7 @@ export function SkillGapPanel({
       )}
 
       {missing.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-4">
           <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             <CircleAlert className="size-3 text-destructive" aria-hidden />
             Missing
@@ -84,6 +86,25 @@ export function SkillGapPanel({
               </Badge>
             ))}
           </div>
+
+          {gapNarratives && Object.keys(gapNarratives).length > 0 && (
+            <div className="space-y-3 mt-4 border-l-2 pl-4 border-muted">
+              {missing.map((s) => gapNarratives[s] && (
+                <div key={`gap-${s}`} className="text-sm space-y-1">
+                  <p className="font-medium text-foreground">{s}</p>
+                  <p className="text-muted-foreground"><span className="font-medium text-foreground/80">Why it matters:</span> {gapNarratives[s].why_it_matters}</p>
+                  <p className="text-muted-foreground"><span className="font-medium text-foreground/80">How to close:</span> {gapNarratives[s].how_to_close}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {totalRequired > 0 && missing.length === 0 && gapNarratives !== undefined && (
+        <div className="mt-4 flex items-center gap-2 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success">
+          <CheckCircle2 className="size-4" />
+          <p>You cover every listed skill. Great match!</p>
         </div>
       )}
     </div>
