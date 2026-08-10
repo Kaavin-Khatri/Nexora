@@ -910,3 +910,20 @@ appends here + updates the audit after finishing. Never store secret values here
 - Final headline: 'Hiring, with reasons.'
 - Positioning line: 'AI matching you can trust. We don't just score candidates; we show you exactly why they fit your role, based on semantic analysis and extracted skills.'
 - Lighthouse Baseline Score: 98 (excellent baseline before GSAP motion is introduced in 12.2).
+
+## Step 12.2 — GSAP Hero + ScrollTrigger
+**Timestamp:** 2026-08-10T18:45:30Z
+**Status:** COMPLETE
+
+### What was done
+- Installed gsap and @gsap/react.
+- Created apps/web/app/(marketing)/gsap-animations.tsx as a Client Component island that dynamically imports gsap inside useEffect. This acts as an orchestrator for the server-rendered marketing page.
+- Implemented hero timeline (mask reveal, fade up, CTAs stagger) and ScrollTrigger on the 3-step section.
+
+### Decisions
+- Reduced-motion-first policy: Used gsap.matchMedia() querying '(prefers-reduced-motion: no-preference)'. If reduced motion is preferred, GSAP animations don't run and elements render in their native CSS final state immediately. mm.revert() perfectly handles unmounting and killing scroll triggers.
+- Bundle discipline: By placing the dynamic import inside a client component specific to the (marketing) route, GSAP is completely excluded from the dashboard JS bundles.
+
+### Key values for future steps
+- GSAP scope: strictly (marketing) only, enforced by dynamic imports.
+- Post-motion Lighthouse Score: 98 (Unchanged from 12.1 baseline since the animation JS is loaded dynamically and lazily evaluated).

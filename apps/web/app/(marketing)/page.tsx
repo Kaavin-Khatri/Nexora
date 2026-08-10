@@ -2,23 +2,25 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ChevronRight, BarChart3, Search, Lightbulb } from "lucide-react";
+import { GSAPAnimations } from "./gsap-animations";
 
 export default function MarketingPage() {
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center overflow-x-hidden">
+      <GSAPAnimations />
       {/* Hero Section */}
       <section className="w-full max-w-6xl px-4 sm:px-8 pt-24 pb-20 md:pt-32 md:pb-32 text-center">
-        <h1 className="font-heading text-5xl md:text-7xl font-bold tracking-tight text-foreground max-w-4xl mx-auto">
+        <h1 className="hero-headline font-heading text-5xl md:text-7xl font-bold tracking-tight text-foreground max-w-4xl mx-auto">
           Hiring, with reasons.
         </h1>
-        <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+        <p className="hero-subline mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
           AI matching you can trust. We don&apos;t just score candidates; we show you exactly why they fit your role, based on semantic analysis and extracted skills.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" className="h-12 px-8 text-base" asChild>
+          <Button size="lg" className="hero-cta h-12 px-8 text-base" asChild>
             <Link href="/signup?role=recruiter">Hire Smarter <ChevronRight className="ml-2 size-4" /></Link>
           </Button>
-          <Button size="lg" variant="outline" className="h-12 px-8 text-base" asChild>
+          <Button size="lg" variant="outline" className="hero-cta h-12 px-8 text-base" asChild>
             <Link href="/signup?role=candidate">Find Your Fit</Link>
           </Button>
         </div>
@@ -34,8 +36,8 @@ export default function MarketingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center text-center p-6">
+          <div className="steps-container grid md:grid-cols-3 gap-8">
+            <div className="step-card flex flex-col items-center text-center p-6">
               <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-6">
                 <Search className="size-6" />
               </div>
@@ -44,7 +46,7 @@ export default function MarketingPage() {
                 We parse your resume and job description using LLMs to extract core skills and structure experience into actionable data.
               </p>
             </div>
-            <div className="flex flex-col items-center text-center p-6">
+            <div className="step-card flex flex-col items-center text-center p-6">
               <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-6">
                 <BarChart3 className="size-6" />
               </div>
@@ -53,7 +55,7 @@ export default function MarketingPage() {
                 Hard filters like remote preferences and minimum experience are applied instantly, ensuring you only see viable candidates.
               </p>
             </div>
-            <div className="flex flex-col items-center text-center p-6">
+            <div className="step-card flex flex-col items-center text-center p-6">
               <div className="size-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mb-6">
                 <Lightbulb className="size-6" />
               </div>

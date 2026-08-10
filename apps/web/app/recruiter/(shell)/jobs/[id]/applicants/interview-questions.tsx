@@ -8,7 +8,6 @@ import { Loader2, Copy, Sparkles, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export type Question = {
   id: string;

@@ -12,6 +12,7 @@ history lives in memory.md. Never store secret values here.
 ## Stack & Versions
 - apps/web: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4.3.2, ESLint 9.39.5 + Prettier 3.9.5 (eslint-config-prettier 10.1.8), import alias `@/*`
 - Design system: shadcn/ui (CLI v4, radix base) — avatar, badge, button, card, dialog, dropdown-menu, field (+separator; replaces removed "form"), input, label, select, sheet, skeleton, sonner, table, tabs, tooltip. Fonts via next/font: Sora (headings), Inter (body), JetBrains Mono (data). Icons: lucide-react.
+- Web Motion: GSAP (imported ONLY dynamically in marketing routes to protect dashboard bundles)
 - apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pgvector, pydantic 2.13.4, pydantic-settings 2.14.2, PyJWT 2.13 + cryptography (JWT), supabase 2.31 + python-multipart (storage/uploads), pdfplumber + python-docx + groq (parse), fastembed 0.8.0 (embeddings: BAAI/bge-small-en-v1.5, 384-dim ONNX — ~220MB RSS warm), python-dotenv, ruff 0.15.21 (dev)
 - Monorepo: pnpm workspace (pnpm-workspace.yaml), single lockfile at root
 
@@ -229,6 +230,7 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - APPLY SNAPSHOT (9.1): no live re-scoring of applications. The match score and breakdown are calculated using the candidate's current resume exactly when `POST /applications` occurs, and permanently stored on the `Application` record.
 - ANALYTICS SCOPE CEILING (11.1): v1 analytics are strictly derived from live SQL aggregates on the `applications` and `jobs` tables. No event tables, no tracking pixels, zero new infrastructure. The upgrade path if volume scales beyond live aggregates is a nightly rollup cron or a dedicated event table — but not until needed.
 - MARKETING COPY CLAIMS (12.1): claims-must-be-true rule enforced. No lorem ipsum or vaporware. Every feature claimed on the landing page is backed by the shipped production system (Phase 8-11).
+- REDUCED-MOTION-FIRST POLICY (12.2): GSAP animations always query `prefers-reduced-motion` via `gsap.matchMedia()`. If reduced motion is preferred, zero GSAP initialization runs and elements render in their native, accessible final states. Applied globally.
 
 ## Security
 - Token validation (app/core/security.py): every protected route verifies the Supabase JWT independently — signature via project JWKS (ES256, cached PyJWKClient; HS256 fallback if SUPABASE_JWT_SECRET set), aud must be 'authenticated', exp enforced, 30s clock-skew leeway. 401 on any failure; require_role() → 403 on role mismatch.
