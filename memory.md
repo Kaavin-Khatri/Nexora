@@ -1028,3 +1028,20 @@ appends here + updates the audit after finishing. Never store secret values here
   - Added env-gated sentry (web) and sentry-sdk (API).
 - **Dependencies Added:** structlog, sentry-sdk, @sentry/nextjs
 - **Next Agent Notes:** Check Sentry keys if deploying to prod.
+
+## Step 15.3 — README, Write-up & V1 Freeze
+**Timestamp:** 2026-08-11T04:00:00Z
+**Status:** COMPLETE
+
+### What was done
+- Distilled living codebase_audit.md into frozen docs/ARCHITECTURE.md
+- Drafted comprehensive V1 README.md with architecture flows, performance counter-examples, and local-run guide
+- Stamped codebase_audit.md as v1.0 and centralized deferred post-v1 backlog items
+- Drafted quantified resume bullets and fact-checked against system limits and functionality
+
+### Decisions
+- Architectural documentation frozen separately from living audit to preserve a point-in-time reference for V1.
+
+### Key values for future steps
+- Project transitions from active baseline development to maintenance and v2 enhancements.
+- Next steps focus on executing items in the post-v1 backlog (e.g. withdraw-application, full parsed-field editing).

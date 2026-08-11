@@ -1,7 +1,7 @@
-# Nexora — codebase_audit.md (v1.0 — 2026-08-11)
+# Nexora Architecture (v1.0 Snapshot)
 
-Living snapshot of the system AS IT IS NOW. Sections are rewritten in place —
-history lives in memory.md. Never store secret values here.
+This is a frozen snapshot of the Nexora system architecture at v1.0. 
+For the living state of the codebase, see `codebase_audit.md`.
 
 ## Environment
 - OS: Windows 11 Home, shell: PowerShell (all commands use PowerShell syntax)
@@ -272,12 +272,3 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - create-next-app drops a nested pnpm-workspace.yaml/lockfile when run inside the monorepo — was removed in Step 1.1; watch for it if re-scaffolding
 
 - Step 15.2 completed: JSON logging implemented across API and web error boundaries added.
-
-## Post-v1 Backlog
-The following items were deferred during v1 development:
-1. **Withdraw Application**: Candidates cannot withdraw applications yet.
-2. **Full Parsed-Field Editing**: Editing is limited to skills. Contact/experience/education editing was deferred as they do not affect matching.
-3. **Realtime Status Updates**: Application status changes do not push over websockets.
-4. **Multi-Recruiter Teams**: One recruiter = one company. Invites/roles deferred.
-5. **BM25 Lexical Term Matching**: Hybrid match uses pgvector + skill overlap + experience fit, but lacks full-text keyword weighting.
-6. **Email Confirmation**: Supabase auth email confirmation is currently deferred for development velocity (needs enabling).
