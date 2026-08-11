@@ -950,3 +950,47 @@ appends here + updates the audit after finishing. Never store secret values here
 ### Key values for future steps
 - Motion Budget: transform/opacity only, <= 250ms, reduced-motion gated.
 - Animation inventory appended to codebase_audit.md components section.
+
+---
+
+## Step 14.1 — API to Render (Guided)
+**Timestamp:** 2026-08-10T15:03:00Z
+**Status:** COMPLETE
+
+### What was done
+- API deployed to Render Free Tier using the guided approach.
+- Adjusted `package.json` `dev:api` script to use Windows backslashes for local dev server boot.
+- Environment variables carefully configured on Render, incorporating production connection strings (Transaction Pooler `:6543` for `DATABASE_URL`, Session Pooler `:5432` for `DIRECT_DATABASE_URL`).
+- Explicit instructions given to user regarding the `{"detail":"Not Found"}` behavior on the API root url, demonstrating success through `/health` and `/health/db`.
+- Migration workflow documentation added to `README.md` and `codebase_audit.md` (Alembic must run locally against production DB via DIRECT_DATABASE_URL).
+- Directed user to setup UptimeRobot ping on `/health` (5 min interval) to circumvent Render free tier sleep.
+
+### Decisions
+- Render uses the transaction pooler for runtime API queries, and the local CLI uses the session pooler for migrations.
+- Supavisor JWT signing logic leverages JWKS/ES256, leaving `SUPABASE_JWT_SECRET` empty in Render config.
+
+### Key values for future steps
+- API live URL: https://nexora-9od0.onrender.com
+- UptimeRobot monitor established to ping https://nexora-9od0.onrender.com/health every 5 mins.
+
+---
+
+## Step 14.2 — Web → Vercel + Auth URL Wiring (guided)
+**Timestamp:** 2026-08-11T02:45:00Z
+**Status:** COMPLETE
+
+### What was done
+- Next.js frontend deployed to Vercel production.
+- Wired Supabase Auth Site URL and Redirect URLs to point to the new Vercel production URL.
+- Configured Render API's `ALLOWED_ORIGINS` to permit CORS requests from the Vercel app.
+- Verified absence of server secrets (`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`) in production client bundle.
+- Fixed Framer Motion typescript errors causing production builds to fail (changed `false` to `undefined`).
+- Fixed double trailing slash issue in `NEXT_PUBLIC_API_URL` fetching that caused 404s from FastAPI.
+
+### Decisions
+- Trailing slashes are dynamically stripped from `process.env.NEXT_PUBLIC_API_URL` in `api-client.ts` to harden against accidental double slashes in host dashboard configs.
+- Preview deployments on Vercel are consciously ignored for now: Vercel preview domains are random and won't match `ALLOWED_ORIGINS` on Render. This means previews can't hit the API without adding wildcard CORS to Render, which we avoided for security.
+
+### Key values for future steps
+- API live URL: https://nexora-9od0.onrender.com
+- Web live URL: https://nexora-web-amber.vercel.app

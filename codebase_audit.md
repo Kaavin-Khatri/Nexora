@@ -21,7 +21,7 @@ history lives in memory.md. Never store secret values here.
 - Supabase Auth: email/password provider, role captured at signup in user_metadata.role; **Confirm email OFF for dev (LAUNCH BLOCKER — re-enable in 15.1)**; web uses @supabase/ssr cookie-based sessions
 - Groq (LLM): key `nexora-dev`, model llama-3.3-70b-versatile via GROQ_MODEL. ALL Groq calls go through app/services/llm_client.py (the single gateway — no other file imports groq). Call inventory (FINAL 5): #1 resume structuring (resume_parser), #2 skill mining (skill_extractor), #3 job structuring (job_ingest), #4 gap analysis (cached, Phase 10), #5 interview questions (on-demand, Phase 10).
 - Supabase Storage: private bucket `resumes` — all access server-mediated via the service-role key (app/core/storage.py); files at {user_id}/{uuid}.{ext}; no public policies
-- Vercel: account ready, hosts apps/web (deploy in Phase 14.2)
+- Vercel: hosts apps/web production (https://nexora-web-amber.vercel.app)
 - Render: account ready, hosts apps/api (deploy in Phase 14.1)
 - UptimeRobot: account ready (keep-alive pings, Phase 14)
 
@@ -32,7 +32,7 @@ history lives in memory.md. Never store secret values here.
 - DB password contains special characters → stored URL-encoded in .env.
 
 ## Env Var Registry
-Canonical names only — values live in git-ignored .env files / host dashboards.
+Canonical names only — production values live in host dashboards, never in the repo.
 
 | Var | Owner | Secret | Status |
 |-----|-------|--------|--------|
