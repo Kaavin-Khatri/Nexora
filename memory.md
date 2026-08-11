@@ -1017,3 +1017,14 @@ appends here + updates the audit after finishing. Never store secret values here
 
 ### Key values for future steps
 - Next Step: Step 15.2 (Demo Data Generation).
+
+### [2026-08-11] — Step 15.2: Errors, Logging & Boundaries
+- **Changes Made:**
+  - Added structured JSON logging via structlog to API.
+  - Configured RequestIDMiddleware and global unhandled exception handler to bind Request ID.
+  - Wired contextvars in celery workers and API endpoints.
+  - Updated ApiError class in web to attach request_id header, with Sonner toast for mutations.
+  - Built error.tsx and not-found.tsx for web boundaries.
+  - Added env-gated sentry (web) and sentry-sdk (API).
+- **Dependencies Added:** structlog, sentry-sdk, @sentry/nextjs
+- **Next Agent Notes:** Check Sentry keys if deploying to prod.

@@ -270,3 +270,5 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - db.<ref>.supabase.co (true direct connection) is IPv6-only and unreachable from this network — DIRECT_DATABASE_URL uses the session pooler (:5432) instead
 - Python 3.14.6 is ahead of the plan's 3.11 target — all current deps installed fine; if a future dep lacks 3.14 wheels, install Python 3.11 alongside
 - create-next-app drops a nested pnpm-workspace.yaml/lockfile when run inside the monorepo — was removed in Step 1.1; watch for it if re-scaffolding
+
+- Step 15.2 completed: JSON logging implemented across API and web error boundaries added.

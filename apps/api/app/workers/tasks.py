@@ -1,4 +1,3 @@
-import logging
 import os
 import uuid
 
@@ -10,7 +9,10 @@ from app.services.embedding_service import build_resume_embed_text, embed_text
 from app.services.resume_parser import ParseError, extract_text, structure_resume
 from app.services.skill_extractor import extract_skills
 
-logger = logging.getLogger("nexora.parse")
+import structlog
+from app.core.logging import bind_contextvars
+
+logger = structlog.get_logger(__name__)
 
 
 def parse_resume(resume_id: uuid.UUID) -> None:
@@ -21,6 +23,7 @@ def parse_resume(resume_id: uuid.UUID) -> None:
     with a human-readable error_message — a raised error never leaves a row
     stuck at 'parsing'.
     """
+    bind_contextvars(resume_id=str(resume_id))
     db = SessionLocal()
     try:
         resume = db.get(Resume, resume_id)
@@ -47,12 +50,13 @@ def parse_resume(resume_id: uuid.UUID) -> None:
         resume.embedding = embedding  # 384-dim, same space jobs join in Phase 7
         resume.status = "parsed"
         db.commit()
+        logger.info("resume_parsed_success")
     except ParseError as exc:
+        logger.warning("resume_parse_error", error=str(exc))
         _fail(db, resume_id, str(exc))
-    except Exception as exc:  # noqa: BLE001 — any failure must be recorded, not swallowed
-        logger.exception("parse_resume failed for %s", resume_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("resume_parse_failure")
         _fail(db, resume_id, "Something went wrong while reading your resume. Please try again.")
-        _ = exc
     finally:
         db.close()
 

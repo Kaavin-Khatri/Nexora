@@ -68,3 +68,7 @@ Nexora runs on $0 free-tier cloud services, which means cold-starts and pausing 
    - Log into the Recruiter demo account. Navigate to the job dashboard and open the Applicant Table so it is fully rendered.
    - Log into the Candidate demo account. Navigate to the Candidate dashboard.
 4. **No Surprises:** Run a quick test action (like applying for a fake job) to ensure the Groq API and Supabase Auth are responding instantly.
+
+### Optional Observability
+- SENTRY_DSN (API) — Enable Sentry for FastAPI backend (set to free tier DSN)
+- NEXT_PUBLIC_SENTRY_DSN (Web) — Enable Sentry for Next.js frontend

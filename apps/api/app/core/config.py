@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
     ALLOWED_ORIGINS: str = "http://localhost:3000"
     FASTEMBED_CACHE: str = ".fastembed_cache"
+    SENTRY_DSN: str | None = None
 
     # Hybrid match weights (8.2) — must sum to 1.0; echoed in every breakdown.
     MATCH_W_SIM: float = 0.5

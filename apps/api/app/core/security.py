@@ -2,12 +2,13 @@ import uuid
 from dataclasses import dataclass
 
 import jwt
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.logging import bind_user_id
 from app.db.models import Profile
 from app.db.session import get_db
 
@@ -70,6 +71,7 @@ def get_current_user(
     claims = verify_token(creds.credentials)
     user_id = uuid.UUID(claims["sub"])
     email = claims.get("email")
+    bind_user_id(str(user_id))
 
     profile = db.get(Profile, user_id)
     if profile is None:

@@ -1,6 +1,11 @@
+import time
+import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+import sentry_sdk
+import structlog
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -14,10 +19,22 @@ from app.db.session import get_db
 from app.routers import applications, candidates, companies, jobs, resumes, skills
 from app.services.embedding_service import model_loaded, warmup
 from app.core.rate_limit import limiter
+from app.core.logging import setup_logging, bind_request_id, clear_request_context
 
+logger = structlog.get_logger(__name__)
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=1.0,
+        _experiments={
+            "continuous_profiling_auto_start": True,
+        },
+    )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    setup_logging()
     # Warm the embedding model at startup so the first parse isn't cold.
     warmup()
     yield
@@ -29,12 +46,47 @@ app.state.limiter = limiter
 # Custom exception handler for slowapi so we return JSON instead of plain text
 @app.exception_handler(RateLimitExceeded)
 async def rate_limit_handler(request, exc: RateLimitExceeded):
-    from fastapi.responses import JSONResponse
     return JSONResponse(
         status_code=429,
         content={"detail": f"Rate limit exceeded: {exc.detail}"}
     )
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    req_id = getattr(request.state, "request_id", "unknown")
+    logger.exception("unhandled_exception", path=request.url.path, request_id=req_id)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "code": "internal_error",
+                "message": "Internal server error",
+                "request_id": req_id,
+            }
+        },
+    )
+
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        req_id = str(uuid.uuid4())
+        request.state.request_id = req_id
+        bind_request_id(req_id)
+        
+        start_time = time.time()
+        try:
+            response = await call_next(request)
+            process_time_ms = (time.time() - start_time) * 1000
+            response.headers["X-Request-ID"] = req_id
+            
+            # Optionally log every request, but often done via external proxy. 
+            # We will just log unhandled exceptions and specific pipeline logs.
+            return response
+        finally:
+            clear_request_context()
+
+app.add_middleware(RequestIDMiddleware)
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
@@ -56,6 +108,11 @@ app.include_router(skills.router)
 def health():
     # model_loaded is read by Phase 14 monitoring.
     return {"status": "ok", "model_loaded": model_loaded()}
+
+
+@app.get("/health/force-500", include_in_schema=False)
+async def force_500():
+    raise Exception("This is a forced 500 error for correlation testing.")
 
 
 @app.get("/health/db")

@@ -1,14 +1,14 @@
 import json
-import logging
 from functools import lru_cache
 from typing import TypeVar
 
 from groq import Groq
 from pydantic import BaseModel, ValidationError
 
+import structlog
 from app.core.config import settings
 
-logger = logging.getLogger("nexora.llm")
+logger = structlog.get_logger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -42,8 +42,15 @@ def chat_json(system: str, user: str, model: type[T]) -> T:
             temperature=0.1,
         )
         content = resp.choices[0].message.content or ""
+        
+        usage = resp.usage
+        tokens = usage.total_tokens if usage else 0
+        
         try:
-            return model.model_validate(json.loads(content))
+            parsed = json.loads(content)
+            result = model.model_validate(parsed)
+            logger.info("groq_call_success", model=settings.GROQ_MODEL, groq_tokens=tokens, attempt=attempt+1)
+            return result
         except (json.JSONDecodeError, ValidationError) as e:
             last_error = e
             logger.warning("Groq JSON validation failed (attempt %d): %s", attempt + 1, e)
