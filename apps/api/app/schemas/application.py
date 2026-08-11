@@ -5,10 +5,12 @@ from app.schemas.match import MatchBreakdown
 
 
 class ApplicationCreate(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     job_id: uuid.UUID
 
 
 class ApplicationStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     status: str
 
 

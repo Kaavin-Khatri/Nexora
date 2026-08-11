@@ -994,3 +994,26 @@ appends here + updates the audit after finishing. Never store secret values here
 ### Key values for future steps
 - API live URL: https://nexora-9od0.onrender.com
 - Web live URL: https://nexora-web-amber.vercel.app
+
+---
+
+## Step 15.1 — Security & Validation Audit
+**Timestamp:** 2026-08-11T03:08:00Z
+**Status:** COMPLETE
+
+### What was done
+- Added ownership test suite using `TestClient` and mock DB in `test_ownership.py` proving cross-user 404/403 boundaries
+- Implemented server-side signed URLs for private resume retrieval in `storage.py` and `resumes.py` (`GET /resumes/{id}/file`)
+- Added `slowapi` rate limiting (5/minute) on LLM-heavy endpoints (`POST /resumes`, `GET /resumes/latest/gap-analysis`, `POST /applications/{id}/interview-questions`)
+- Hardened Pydantic schemas with `model_config = ConfigDict(extra="forbid")` to prevent mass assignment
+- Configured strict security headers in `next.config.ts`
+- Verified git history and client bundle for secrets; none exposed
+- Recorded decision to defer email-confirmation
+
+### Decisions
+- The email-confirmation for new auth sign-ups has been deferred (remains disabled).
+- `slowapi` was configured with an exception handler to return 429 JSON responses instead of text.
+- Pydantic models for testing ownership used mock sessions to isolate API route logic without needing full database setup.
+
+### Key values for future steps
+- Next Step: Step 15.2 (Demo Data Generation).

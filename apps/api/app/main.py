@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -11,6 +13,7 @@ from app.db.models import Profile
 from app.db.session import get_db
 from app.routers import applications, candidates, companies, jobs, resumes, skills
 from app.services.embedding_service import model_loaded, warmup
+from app.core.rate_limit import limiter
 
 
 @asynccontextmanager
@@ -21,7 +24,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Nexora API", lifespan=lifespan)
+app.state.limiter = limiter
 
+# Custom exception handler for slowapi so we return JSON instead of plain text
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request, exc: RateLimitExceeded):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"}
+    )
+
+app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,

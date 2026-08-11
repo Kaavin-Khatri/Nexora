@@ -22,3 +22,10 @@ def upload_resume(path: str, data: bytes, content_type: str) -> None:
 
 def download_resume(path: str) -> bytes:
     return _client().storage.from_(BUCKET).download(path)
+
+
+def create_signed_url(path: str, expires_in: int = 60) -> str:
+    response = _client().storage.from_(BUCKET).create_signed_url(path, expires_in)
+    if not response or "signedURL" not in response:
+        raise RuntimeError("Failed to create signed URL")
+    return response["signedURL"]

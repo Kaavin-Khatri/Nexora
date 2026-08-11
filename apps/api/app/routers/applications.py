@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
+from app.core.rate_limit import limiter
 from app.core.security import CurrentUser, require_role
 from app.db.models import Application, Job, Profile, Resume
 from app.db.session import get_db
@@ -135,7 +136,9 @@ def update_status(
 
 
 @router.post("/{id}/interview-questions", response_model=list[InterviewQuestionOut])
+@limiter.limit("5/minute")
 def generate_interview_questions(
+    request: Request,
     id: uuid.UUID,
     regenerate: bool = False,
     user: CurrentUser = Depends(require_role("recruiter")),

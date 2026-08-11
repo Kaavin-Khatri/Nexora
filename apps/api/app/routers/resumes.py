@@ -1,11 +1,13 @@
 import uuid
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.rate_limit import limiter
+
 from app.core.security import CurrentUser, require_role
-from app.core.storage import upload_resume
+from app.core.storage import upload_resume, create_signed_url
 from app.db.models import Resume
 from app.db.session import get_db
 from app.schemas.resume import ResumeOut, SkillsUpdate
@@ -36,7 +38,9 @@ ALLOWED = {
 
 
 @router.post("", response_model=ResumeOut)
+@limiter.limit("5/minute")
 async def upload(
+    request: Request,
     file: UploadFile,
     background_tasks: BackgroundTasks,
     user: CurrentUser = Depends(require_role("candidate")),
@@ -78,7 +82,9 @@ def latest(
     )
 
 @router.get("/latest/gap-analysis")
+@limiter.limit("5/minute")
 def latest_gap_analysis(
+    request: Request,
     job_id: uuid.UUID,
     user: CurrentUser = Depends(require_role("candidate")),
     db: Session = Depends(get_db),
@@ -105,6 +111,19 @@ def get_one(
     db: Session = Depends(get_db),
 ):
     return _owned_or_404(db, resume_id, user.id)
+
+
+@router.get("/{id}/file")
+def get_resume_file(
+    id: uuid.UUID,
+    user: CurrentUser = Depends(require_role("candidate")),
+    db: Session = Depends(get_db),
+):
+    resume = _owned_or_404(db, id, user.id)
+    if not resume.file_path:
+        raise HTTPException(status_code=404, detail="File not found")
+    url = create_signed_url(resume.file_path, expires_in=60)
+    return {"url": url}
 
 
 @router.post("/{resume_id}/reparse", response_model=ResumeOut)

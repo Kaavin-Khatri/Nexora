@@ -57,3 +57,14 @@ Because the API runs on Render's Free Tier (which does not provide a shell to ru
    alembic upgrade head
    ```
 3. Push your code to GitHub. Render will automatically pull the code and deploy the API, which will now use the successfully migrated database schema.
+
+## Demo Kit (Live Presentation Prep)
+
+Nexora runs on $0 free-tier cloud services, which means cold-starts and pausing behavior are reality. To ensure a flawless live demo, perform this ritual **exactly 10 minutes before any demo**:
+
+1. **Wake the Database:** Supabase free-tier projects pause if unused for ~1 week. Log into your Supabase dashboard or just hit the `/health/db` endpoint to ensure the database is awake.
+2. **Wake the API:** Render spins down free web services after 15 minutes of inactivity. Keep your UptimeRobot monitor active (pinging `/health` every 5 mins). Manually hit your `NEXT_PUBLIC_API_URL` to guarantee it's warm. The initial spin-up can take 50 seconds.
+3. **Pre-Load Accounts:** Open two separate browser profiles (or one incognito window).
+   - Log into the Recruiter demo account. Navigate to the job dashboard and open the Applicant Table so it is fully rendered.
+   - Log into the Candidate demo account. Navigate to the Candidate dashboard.
+4. **No Surprises:** Run a quick test action (like applying for a fake job) to ensure the Groq API and Supabase Auth are responding instantly.

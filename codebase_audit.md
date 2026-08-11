@@ -10,10 +10,10 @@ history lives in memory.md. Never store secret values here.
 - Docker: not installed (Supabase is the primary database)
 
 ## Stack & Versions
-- apps/web: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4.3.2, ESLint 9.39.5 + Prettier 3.9.5 (eslint-config-prettier 10.1.8), import alias `@/*`
+- apps/web: Next.js 16.2.10 (App Router, Turbopack), React 19.2.4, TypeScript 5.9.3, Tailwind CSS 4.3.2, ESLint 9.39.5, import alias `@/*` (Security headers configured in next.config.ts)
 - Design system: shadcn/ui (CLI v4, radix base) — avatar, badge, button, card, dialog, dropdown-menu, field (+separator; replaces removed "form"), input, label, select, sheet, skeleton, sonner, table, tabs, tooltip. Fonts via next/font: Sora (headings), Inter (body), JetBrains Mono (data). Icons: lucide-react.
 - Web Motion: GSAP (imported ONLY dynamically in marketing routes to protect dashboard bundles)
-- apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pgvector, pydantic 2.13.4, pydantic-settings 2.14.2, PyJWT 2.13 + cryptography (JWT), supabase 2.31 + python-multipart (storage/uploads), pdfplumber + python-docx + groq (parse), fastembed 0.8.0 (embeddings: BAAI/bge-small-en-v1.5, 384-dim ONNX — ~220MB RSS warm), python-dotenv, ruff 0.15.21 (dev)
+- apps/api: Python 3.14.6 venv, FastAPI 0.139.0, uvicorn 0.51.0, SQLAlchemy 2.0.51, Alembic 1.18.5, psycopg 3.3.4 (binary), pgvector, pydantic 2.13.4, pydantic-settings 2.14.2, slowapi 0.1.10 (Rate limiting at 5/min), PyJWT 2.13 + cryptography (JWT), supabase 2.31 + python-multipart (storage/uploads), pdfplumber + python-docx + groq (parse), fastembed 0.8.0 (embeddings: BAAI/bge-small-en-v1.5, 384-dim ONNX — ~220MB RSS warm), python-dotenv, ruff 0.15.21 (dev)
 - Monorepo: pnpm workspace (pnpm-workspace.yaml), single lockfile at root
 
 ## Services
@@ -24,6 +24,7 @@ history lives in memory.md. Never store secret values here.
 - Vercel: hosts apps/web production (https://nexora-web-amber.vercel.app)
 - Render: account ready, hosts apps/api (deploy in Phase 14.1)
 - UptimeRobot: account ready (keep-alive pings, Phase 14)
+- **Demo-Day Ritual**: 10 mins before demo, ping `/health/db` to wake Supabase, ping `/health` to wake Render API, and log into pre-configured accounts (demo-candidate@ and demo-recruiter@) to load initial assets.
 
 ### Connection strategy
 - DATABASE_URL → Transaction pooler, port 6543 (`aws-1-ap-south-1.pooler.supabase.com`, user `postgres.<ref>`) — app runtime. Supavisor pools server-side, so the engine uses NullPool + pool_pre_ping + prepare_threshold=None (see app/db/session.py comment).
@@ -244,6 +245,10 @@ CORS: CORSMiddleware reads ALLOWED_ORIGINS (comma-separated) via app/config.py s
 - Secrets rule #1: .env / .env.local git-ignored forever
 - Secrets rule #2: every new env var added to .env.example with a placeholder in the same commit that introduces it
 - 2026-07-11 incident: original service_role + sb_secret keys exposed in chat → JWT secret rotated, secret key regenerated. Current keys never exposed.
+- Input validation: Pydantic schemas enforce strict parsing (`extra="forbid"`) to prevent mass assignment / prototype pollution attacks.
+- Rate limits: Core LLM/expensive endpoints are limited to 5/minute/user via SlowAPI.
+- Data access: Private files (resumes) are gated via server-signed URLs. Ownership is strictly verified for all application/resume/job entity modifications.
+- Email confirmation for new auth sign-ups has been deferred (remains disabled).
 
 ## Known Issues
 - Render free tier does not provide a shell. Migrations MUST be executed locally against the production DB (`alembic upgrade head` with `DIRECT_DATABASE_URL` pointing to prod) BEFORE deploying schema-dependent code.
