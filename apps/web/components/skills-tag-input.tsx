@@ -103,7 +103,7 @@ export function SkillsTagInput({
           </Button>
         </div>
         {suggestions.length > 0 && (
-          <ul className="absolute z-10 mt-1 w-full max-w-xs overflow-hidden rounded-md border border-border bg-popover shadow-md">
+          <ul className="absolute z-10 mt-1 w-full max-w-xs overflow-hidden rounded-md border border-border bg-popover/40 backdrop-blur-3xl shadow-md">
             {suggestions.map((s) => (
               <li key={s}>
                 <button

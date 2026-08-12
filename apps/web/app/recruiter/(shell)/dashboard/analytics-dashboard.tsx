@@ -42,10 +42,10 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
   }));
 
   const chartTheme = {
-    color: "hsl(var(--primary))",
-    bg: "hsl(var(--background))",
-    grid: "hsl(var(--border))",
-    text: "hsl(var(--muted-foreground))"
+    color: "var(--primary)",
+    bg: "var(--background)",
+    grid: "var(--border)",
+    text: "var(--muted-foreground)"
   };
 
   return (

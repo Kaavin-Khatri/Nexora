@@ -76,7 +76,9 @@ export function Topbar({
             {email}
           </div>
           <DropdownMenuItem asChild>
-            <Link href={`/${role}/profile`}>Profile</Link>
+            <Link href={role === "candidate" ? "/candidate/profile" : "/recruiter/company"}>
+              {role === "candidate" ? "Profile" : "Company"}
+            </Link>
           </DropdownMenuItem>
           <form action="/logout" method="post">
             <DropdownMenuItem asChild>
