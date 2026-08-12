@@ -175,3 +175,46 @@
     background-size: 24px 24px;
   }
 }
+
+/* Aceternity Variables & Animations */
+:root {
+  --black: #000000;
+  --white: #ffffff;
+  --transparent: transparent;
+  --blue-300: #93c5fd;
+  --blue-400: #60a5fa;
+  --blue-500: #3b82f6;
+  --indigo-300: #a5b4fc;
+  --violet-200: #ddd6fe;
+}
+
+@keyframes move {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 100vw 100vh;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes aurora {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+  to {
+    background-position: 350% 50%, 350% 50%;
+  }
+}
+
+.animate-aurora {
+  animation: aurora 60s linear infinite;
+}

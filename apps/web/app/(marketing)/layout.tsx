@@ -1,28 +1,33 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { FloatingNav } from "@/components/aceternity/floating-nav";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+  const navItems = [
+    { name: "Product", link: "#" },
+    { name: "Pricing", link: "#" },
+    { name: "Contact", link: "#" },
+  ];
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto max-w-6xl flex h-16 items-center justify-between px-4 sm:px-8">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-heading text-xl font-bold tracking-tight">Nexora</span>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium hover:underline">
+    <div className="min-h-screen bg-black flex flex-col">
+      <FloatingNav 
+        navItems={navItems} 
+        actionButton={
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="text-sm font-medium hover:text-white transition-colors text-neutral-300">
               Log In
             </Link>
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="rounded-full shadow-lg shadow-primary/20 bg-primary text-primary-foreground hover:bg-primary/90">
               <Link href="/signup">Sign Up</Link>
             </Button>
-          </nav>
-        </div>
-      </header>
+          </div>
+        }
+      />
       <main className="flex-1">{children}</main>
-      <footer className="border-t py-6 md:py-0">
-        <div className="container mx-auto max-w-6xl flex flex-col items-center justify-between gap-4 md:h-24 md:flex-row px-4 sm:px-8">
-          <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+      <footer className="border-t border-white/5 py-8 mt-24">
+        <div className="container mx-auto max-w-6xl flex flex-col items-center justify-between gap-4 md:flex-row px-4 sm:px-8">
+          <p className="text-center text-sm leading-loose text-neutral-500 md:text-left">
             Built for precision. Nexora is the AI-native hiring platform.
           </p>
         </div>

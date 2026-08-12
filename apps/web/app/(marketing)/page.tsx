@@ -3,29 +3,31 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ChevronRight, BarChart3, Search, Lightbulb } from "lucide-react";
 import { GSAPAnimations } from "./gsap-animations";
+import { AuroraBackground } from "@/components/aceternity/aurora-background";
 
 export default function MarketingPage() {
   return (
-    <div className="flex flex-col items-center overflow-x-hidden bg-dot-grid relative">
-      <div className="hero-ambient-glow ambient-glow bg-primary w-[600px] h-[600px] top-[-150px] left-1/2 -translate-x-1/2" />
+    <div className="flex flex-col items-center overflow-x-hidden bg-black relative">
       <GSAPAnimations />
       {/* Hero Section */}
-      <section className="w-full max-w-6xl px-4 sm:px-8 pt-24 pb-20 md:pt-32 md:pb-32 text-center relative z-10">
-        <h1 className="hero-headline font-heading text-5xl md:text-7xl font-bold tracking-tight text-foreground max-w-4xl mx-auto drop-shadow-sm">
-          Hiring, with reasons.
-        </h1>
-        <p className="hero-subline mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-          AI matching you can trust. We don&apos;t just score candidates; we show you exactly why they fit your role, based on semantic analysis and extracted skills.
-        </p>
-        <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-          <Button size="lg" className="hero-cta h-12 px-8 text-base shadow-lg shadow-primary/25" asChild>
-            <Link href="/signup?role=recruiter">Hire Smarter <ChevronRight className="ml-2 size-4" /></Link>
-          </Button>
-          <Button size="lg" variant="outline" className="hero-cta h-12 px-8 text-base bg-surface backdrop-blur-md" asChild>
-            <Link href="/signup?role=candidate">Find Your Fit</Link>
-          </Button>
-        </div>
-      </section>
+      <AuroraBackground className="w-full">
+        <section className="w-full max-w-6xl px-4 sm:px-8 text-center relative z-10 flex flex-col items-center justify-center">
+          <h1 className="hero-headline font-heading text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white max-w-5xl mx-auto drop-shadow-sm pb-4">
+            Hiring, <br/> with reasons.
+          </h1>
+          <p className="hero-subline mt-6 text-lg md:text-xl text-neutral-300 max-w-2xl mx-auto">
+            AI matching you can trust. We don&apos;t just score candidates; we show you exactly why they fit your role, based on semantic analysis and extracted skills.
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" className="hero-cta h-12 px-8 text-base shadow-lg shadow-primary/25 rounded-full" asChild>
+              <Link href="/signup?role=recruiter">Hire Smarter <ChevronRight className="ml-2 size-4" /></Link>
+            </Button>
+            <Button size="lg" variant="outline" className="hero-cta h-12 px-8 text-base bg-white/5 border-white/10 backdrop-blur-md rounded-full hover:bg-white/10" asChild>
+              <Link href="/signup?role=candidate">Find Your Fit</Link>
+            </Button>
+          </div>
+        </section>
+      </AuroraBackground>
 
       {/* How Matching Works */}
       <section className="w-full bg-surface/50 py-24 backdrop-blur-3xl border-y border-white/5 relative z-10">
