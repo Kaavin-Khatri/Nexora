@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 import { Briefcase, Users, CheckCircle, Percent } from "lucide-react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { BentoGrid, BentoGridItem } from "@/components/aceternity/bento-grid";
 import { LottiePlaceholder } from "@/components/lottie-placeholder";
 
