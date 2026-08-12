@@ -9,8 +9,7 @@ import { api } from "@/lib/api-client";
 import { getAccessToken } from "@/lib/jobs";
 import { toast } from "sonner";
 import { animated, useSpring } from "@react-spring/web";
-// @ts-ignore - animejs does have a default export at runtime
-import anime from "animejs";
+import { animate, random } from "animejs";
 
 type Particle = {
   x: number;
@@ -62,21 +61,20 @@ export function ApplyButton({
       particles.push({
         x: canvas.width / 4,
         y: canvas.height / 4,
-        radius: anime.random(2, 5),
-        color: colors[anime.random(0, colors.length - 1)],
-        tx: anime.random(-150, 150),
-        ty: anime.random(-150, 150),
+        radius: random(2, 5),
+        color: colors[random(0, colors.length - 1)],
+        tx: random(-150, 150),
+        ty: random(-150, 150),
       });
     }
 
-    anime({
-      targets: particles,
+    animate(particles, {
       x: (p: Particle) => p.x + p.tx,
       y: (p: Particle) => p.y + p.ty,
       radius: 0,
-      duration: anime.random(600, 1200),
+      duration: random(600, 1200),
       easing: 'easeOutExpo',
-      update: () => {
+      onRender: () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         particles.forEach(p => {
           ctx.beginPath();
@@ -85,7 +83,7 @@ export function ApplyButton({
           ctx.fill();
         });
       },
-      complete: () => {
+      onComplete: () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
     });
