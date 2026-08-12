@@ -28,7 +28,7 @@ export function AnimatedStagger({
       animate="show"
       className={className}
     >
-      {children}
+      <div>{children}</div>
     </motion.div>
   );
 }
@@ -56,7 +56,7 @@ export function AnimatedStaggerItem({
 
   return (
     <motion.div variants={itemVariants} className={className}>
-      {children}
+      <div>{children}</div>
     </motion.div>
   );
 }

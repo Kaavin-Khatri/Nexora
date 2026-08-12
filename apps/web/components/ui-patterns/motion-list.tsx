@@ -24,7 +24,7 @@ export function MotionList({ children, className }: { children: React.ReactNode,
         }
       }}
     >
-      {children}
+      <div>{children}</div>
     </motion.div>
   );
 }
@@ -48,7 +48,7 @@ export function MotionListItem({ children, className }: { children: React.ReactN
         }
       }}
     >
-      {children}
+      <div>{children}</div>
     </motion.div>
   );
 }
