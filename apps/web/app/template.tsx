@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "motion/react";
-import React from "react";
 
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
@@ -17,7 +16,8 @@ export default function Template({ children }: { children: React.ReactNode }) {
       }}
       className="flex flex-1 flex-col"
     >
-      {children as React.ReactElement}
+      <div>{children}</div>
     </motion.div>
   );
 }
+
