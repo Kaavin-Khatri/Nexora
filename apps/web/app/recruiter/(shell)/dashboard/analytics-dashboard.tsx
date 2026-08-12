@@ -104,10 +104,10 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
                 <XAxis type="number" stroke={chartTheme.text} fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis dataKey="name" type="category" stroke={chartTheme.text} fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  cursor={{ fill: 'hsl(var(--muted)/0.5)' }}
+                  cursor={{ fill: 'var(--muted)' }}
                   contentStyle={{ backgroundColor: chartTheme.bg, borderColor: chartTheme.grid, borderRadius: '6px' }}
                 />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={24} />
+                <Bar dataKey="count" fill={chartTheme.color} radius={[0, 4, 4, 0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -137,7 +137,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
                 <Tooltip 
                   contentStyle={{ backgroundColor: chartTheme.bg, borderColor: chartTheme.grid, borderRadius: '6px' }}
                 />
-                <Line type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="count" stroke={chartTheme.color} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
