@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import type { RefCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts";
 import { Briefcase, Users, CheckCircle, Percent } from "lucide-react";
 import Link from "next/link";
@@ -28,7 +28,7 @@ export function AnalyticsDashboard({ data }: { data: AnalyticsData }) {
         />
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold tracking-tight text-neutral-100">Welcome to your dashboard</h2>
-          <p className="text-sm text-neutral-400">You don't have any open jobs yet. Post your first job to start receiving ranked applicants.</p>
+          <p className="text-sm text-neutral-400">You don&apos;t have any open jobs yet. Post your first job to start receiving ranked applicants.</p>
         </div>
         <Button asChild className="shadow-[0_0_20px_rgba(139,92,246,0.2)] hover:shadow-[0_0_30px_rgba(139,92,246,0.4)] transition-shadow rounded-full group overflow-hidden relative">
           <Link href="/recruiter/jobs/new">
@@ -158,7 +158,7 @@ function TopJobsList({ data }: { data: AnalyticsData }) {
   const [parent] = useAutoAnimate();
   
   return (
-    <div ref={parent} className="space-y-4 px-2 pt-2">
+    <div ref={parent as RefCallback<HTMLDivElement>} className="space-y-4 px-2 pt-2">
       {data.jobs.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-8 bg-black/20 rounded-lg border border-white/5">No applicants yet.</p>
       ) : (
