@@ -9,7 +9,8 @@ import { api } from "@/lib/api-client";
 import { getAccessToken } from "@/lib/jobs";
 import { toast } from "sonner";
 import { animated, useSpring } from "@react-spring/web";
-import anime from "animejs/lib/anime.es.js";
+// @ts-ignore - animejs does have a default export at runtime
+import anime from "animejs";
 
 type Particle = {
   x: number;
