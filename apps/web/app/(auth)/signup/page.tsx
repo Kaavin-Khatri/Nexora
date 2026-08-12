@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { bootstrapProfile } from "@/lib/bootstrap-profile";
 
 type Role = "candidate" | "recruiter";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
-  const [role, setRole] = useState<Role>("candidate");
+  const searchParams = useSearchParams();
+  
+  // Default to candidate, but read from URL if ?role=recruiter is passed
+  const initialRole = (searchParams.get("role") as Role) || "candidate";
+  const [role, setRole] = useState<Role>(initialRole);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -100,5 +104,13 @@ export default function SignupPage() {
         </p>
       </form>
     </main>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<main className="flex min-h-screen items-center justify-center p-4">Loading...</main>}>
+      <SignupForm />
+    </Suspense>
   );
 }
