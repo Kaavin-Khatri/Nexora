@@ -81,47 +81,47 @@
 :root {
   color-scheme: dark;
   /* base */
-  --background: #0b0f1a; /* near-black blue */
-  --foreground: #e6edf7;
-  /* surfaces */
-  --card: #121a2e;
-  --card-foreground: #e6edf7;
-  --popover: #121a2e;
-  --popover-foreground: #e6edf7;
-  --muted: #1a2440; /* surface-2 */
-  --muted-foreground: #8a99b8; /* text-muted */
+  --background: #0a0a0c; /* Deep Space midnight */
+  --foreground: #e5e1e4;
+  /* surfaces - glassmorphism */
+  --card: rgba(255, 255, 255, 0.03);
+  --card-foreground: #e5e1e4;
+  --popover: rgba(255, 255, 255, 0.03);
+  --popover-foreground: #e5e1e4;
+  --muted: rgba(255, 255, 255, 0.08); /* Level 2 surface */
+  --muted-foreground: #cbc3d7; /* on-surface-variant */
   /* brand */
-  --primary: #22d3ee; /* accent: cyan */
-  --primary-foreground: #06121f;
-  --secondary: #8b5cf6; /* accent-2: violet */
-  --secondary-foreground: #f5f3ff;
-  /* shadcn's internal hover surface (kept neutral, NOT the brand accent) */
-  --accent: #1a2440;
-  --accent-foreground: #e6edf7;
+  --primary: #d0bcff; /* Electric Violet */
+  --primary-foreground: #3c0091;
+  --secondary: #4cd7f6; /* Cyan */
+  --secondary-foreground: #003640;
+  /* shadcn's internal hover surface */
+  --accent: rgba(255, 255, 255, 0.05);
+  --accent-foreground: #e5e1e4;
   /* status */
-  --success: #34d399; /* emerald-400 */
-  --warning: #fbbf24; /* amber-400 */
-  --destructive: #fb7185; /* rose-400 */
+  --success: #34d399; /* kept vibrant */
+  --warning: #fbbf24;
+  --destructive: #ffb4ab;
   /* lines */
-  --border: #22304e;
-  --input: #22304e;
-  --ring: #22d3ee;
+  --border: rgba(255, 255, 255, 0.1); /* Soft glowing border */
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #d0bcff;
   /* charts */
-  --chart-1: #22d3ee;
-  --chart-2: #8b5cf6;
+  --chart-1: #d0bcff;
+  --chart-2: #4cd7f6;
   --chart-3: #34d399;
   --chart-4: #fbbf24;
-  --chart-5: #fb7185;
-  --radius: 0.625rem; /* 10px; sm 6 / md 8 / lg 10 / xl 14 */
+  --chart-5: #ffb4ab;
+  --radius: 1.5rem; /* 24px organic curve */
   /* sidebar (Phase 4.2 shell) */
-  --sidebar: #0e1424;
-  --sidebar-foreground: #e6edf7;
-  --sidebar-primary: #22d3ee;
-  --sidebar-primary-foreground: #06121f;
-  --sidebar-accent: #1a2440;
-  --sidebar-accent-foreground: #e6edf7;
-  --sidebar-border: #22304e;
-  --sidebar-ring: #22d3ee;
+  --sidebar: #0a0a0c;
+  --sidebar-foreground: #e5e1e4;
+  --sidebar-primary: #d0bcff;
+  --sidebar-primary-foreground: #3c0091;
+  --sidebar-accent: rgba(255, 255, 255, 0.05);
+  --sidebar-accent-foreground: #e5e1e4;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #d0bcff;
 }
 
 @layer base {
@@ -139,5 +139,11 @@
   h3,
   h4 {
     @apply font-heading;
+  }
+  
+  /* Glassmorphism application */
+  .bg-card, .bg-popover, .bg-muted, .bg-surface, .bg-surface-2 {
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
   }
 }

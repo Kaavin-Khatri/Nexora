@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Sora } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { BackgroundShader } from "@/components/ui/background-shader";
 import "./globals.css";
 
 const sora = Sora({
@@ -34,6 +35,7 @@ export default function RootLayout({
       className={`${sora.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <BackgroundShader />
         {children}
         <Toaster />
       </body>

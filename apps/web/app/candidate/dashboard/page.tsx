@@ -2,6 +2,10 @@ import { PageHeader } from "@/components/layout/page-header";
 import { api } from "@/lib/api-client";
 import { createClient } from "@/lib/supabase/server";
 import {
+  AnimatedStagger,
+  AnimatedStaggerItem,
+} from "@/components/ui-patterns/animated-stagger";
+import {
   CompletenessCard,
   NewAccountFunnel,
   type Overview,
@@ -39,23 +43,31 @@ export default async function CandidateDashboard() {
           />
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <AnimatedStagger className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-4">
             {overview.ats_score !== null && (
-              <ScoreCard
-                score={overview.ats_score}
-                improvements={overview.improvements}
-              />
+              <AnimatedStaggerItem>
+                <ScoreCard
+                  score={overview.ats_score}
+                  improvements={overview.improvements}
+                />
+              </AnimatedStaggerItem>
             )}
             {overview.recommended.length > 0 && (
-              <RecommendedCard jobs={overview.recommended} />
+              <AnimatedStaggerItem>
+                <RecommendedCard jobs={overview.recommended} />
+              </AnimatedStaggerItem>
             )}
           </div>
           <div className="space-y-4">
-            <CompletenessCard completeness={overview.completeness} />
-            <SkillsCard skills={overview.skills} />
+            <AnimatedStaggerItem>
+              <CompletenessCard completeness={overview.completeness} />
+            </AnimatedStaggerItem>
+            <AnimatedStaggerItem>
+              <SkillsCard skills={overview.skills} />
+            </AnimatedStaggerItem>
           </div>
-        </div>
+        </AnimatedStagger>
       )}
     </>
   );
