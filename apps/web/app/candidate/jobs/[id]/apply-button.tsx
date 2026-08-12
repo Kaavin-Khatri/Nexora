@@ -68,12 +68,19 @@ export function ApplyButton({
       });
     }
 
-    animate(particles, {
-      x: (p: Particle) => p.x + p.tx,
-      y: (p: Particle) => p.y + p.ty,
-      radius: 0,
-      duration: random(600, 1200),
-      easing: 'easeOutExpo',
+    particles.forEach(p => {
+      animate(p, {
+        x: p.x + p.tx,
+        y: p.y + p.ty,
+        radius: 0,
+        duration: random(600, 1200),
+        easing: 'easeOutExpo',
+      });
+    });
+
+    // Dummy animation just to drive the render loop
+    animate(particles[0], {
+      duration: 1200,
       onRender: () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         particles.forEach(p => {
