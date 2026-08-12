@@ -6,6 +6,7 @@ import Link from "next/link";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api-client";
+import { getAccessToken } from "@/lib/jobs";
 import { toast } from "sonner";
 
 export function ApplyButton({
@@ -33,8 +34,10 @@ export function ApplyButton({
   const handleApply = async () => {
     setApplying(true);
     try {
+      const token = await getAccessToken();
       await api("/applications", {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: JSON.stringify({ job_id: jobId }),
       });
       setApplied(true);
