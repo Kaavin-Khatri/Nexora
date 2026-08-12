@@ -16,7 +16,7 @@ export default function Template({ children }: { children: React.ReactNode }) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
     >
-      {children}
+      {children as React.ReactElement}
     </motion.div>
   );
 }
