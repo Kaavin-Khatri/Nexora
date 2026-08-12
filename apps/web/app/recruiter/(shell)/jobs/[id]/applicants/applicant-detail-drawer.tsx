@@ -15,6 +15,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
+  SheetClose,
 } from "@/components/ui/sheet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchScoreCard } from "@/components/ui-patterns/match-score-card";
@@ -27,6 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InterviewQuestions } from "./interview-questions";
 import { motion, AnimatePresence } from "motion/react";
 import { useReducedMotionSafe } from "@/hooks/use-reduced-motion-safe";
+import { XIcon } from "lucide-react";
 
 const TRANSITION_MAP: Record<string, string[]> = {
   applied: ["screening", "shortlisted", "rejected"],
@@ -92,6 +94,7 @@ export function ApplicantDetailDrawer({
           <SheetContent 
             forceMount 
             asChild
+            showCloseButton={false}
             side="right" 
             className="w-full sm:max-w-xl overflow-y-auto data-closed:animate-none data-open:animate-none"
           >
@@ -115,16 +118,24 @@ export function ApplicantDetailDrawer({
                 </span>
               </div>
             </div>
-            {applicant.match_score !== null && (
-              <div className="flex flex-col items-end">
-                <span className="font-mono text-2xl font-semibold">
-                  {Math.round(applicant.match_score * 100)}%
-                </span>
-                <span className="text-sm text-muted-foreground font-medium">
-                  {getMatchTier(applicant.match_score).label}
-                </span>
-              </div>
-            )}
+            <div className="flex flex-col items-end gap-2">
+              <SheetClose asChild>
+                <Button variant="ghost" size="icon-sm" className="-mr-2 -mt-2">
+                  <XIcon className="size-4" />
+                  <span className="sr-only">Close</span>
+                </Button>
+              </SheetClose>
+              {applicant.match_score !== null && (
+                <div className="flex flex-col items-end mt-2">
+                  <span className="font-mono text-2xl font-semibold">
+                    {Math.round(applicant.match_score * 100)}%
+                  </span>
+                  <span className="text-sm text-muted-foreground font-medium">
+                    {getMatchTier(applicant.match_score).label}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {allowedNext.length > 0 && (
